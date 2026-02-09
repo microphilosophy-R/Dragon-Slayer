@@ -1,0 +1,264 @@
+import React, { useState, useEffect } from 'react';
+import { Scroll, Sword, Skull, Shield, BookOpen, Save, Crown, ChevronRight } from 'lucide-react';
+
+// --- DATA MODELS & CONSTANTS ---
+// These definitions are prepared for Scenario 1 & 2 but initialized here.
+
+const HERO_DEFAULTS = [
+  {
+    id: 'merlin',
+    name: 'Merlin',
+    role: 'Wizard',
+    hp: 4,
+    maxHp: 4,
+    speed: 6,
+    desc: 'Offensive: Dmg 4 if dice is 6. Passive: Reroll once if first.',
+  },
+  {
+    id: 'arthur',
+    name: 'Arthur',
+    role: 'Knight',
+    hp: 7,
+    maxHp: 7,
+    speed: 4,
+    desc: 'Offensive: Dmg 1 if dice >= 4. Passive: Heal ally on repeated dice.',
+  },
+  {
+    id: 'archer',
+    name: 'Archer Chapanion',
+    role: 'Ranger',
+    hp: 5,
+    maxHp: 5,
+    speed: 8,
+    desc: 'Offensive: Dmg 1 & Speed -1 if first. Passive: Dmg 1 if dice even.',
+  },
+  {
+    id: 'architect',
+    name: 'Royal Architect',
+    role: 'Support',
+    hp: 4,
+    maxHp: 4,
+    speed: 1,
+    desc: 'Offensive: +2 Def to ally. Passive: Dmg = dice (once/battle).',
+  }
+];
+
+// --- COMPONENTS ---
+
+const Button = ({ children, onClick, disabled = false, icon: Icon, primary = false }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`
+      relative group w-full max-w-md mx-auto flex items-center justify-center gap-3 px-8 py-4 
+      font-serif text-lg tracking-widest border-2 transition-all duration-300
+      ${disabled 
+        ? 'border-stone-700 text-stone-600 cursor-not-allowed bg-stone-900/50' 
+        : primary
+          ? 'border-amber-600 text-amber-100 bg-stone-900 hover:bg-amber-900/30 hover:border-amber-400 hover:scale-105 shadow-[0_0_15px_rgba(217,119,6,0.1)] hover:shadow-[0_0_25px_rgba(217,119,6,0.3)]'
+          : 'border-stone-600 text-stone-400 bg-stone-900 hover:bg-stone-800 hover:border-stone-400 hover:text-stone-200'
+      }
+    `}
+  >
+    {Icon && <Icon size={20} className={primary ? "text-amber-500" : "text-stone-500"} />}
+    <span>{children}</span>
+    
+    {/* Decorative corners */}
+    {!disabled && (
+      <>
+        <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-current opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-current opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-current opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-current opacity-0 group-hover:opacity-100 transition-opacity" />
+      </>
+    )}
+  </button>
+);
+
+const EmberParticle = ({ delay, left, duration }) => (
+  <div 
+    className="absolute bottom-0 w-1 h-1 bg-amber-500 rounded-full animate-float opacity-0 pointer-events-none"
+    style={{ 
+      left: `${left}%`, 
+      animationDelay: `${delay}s`,
+      animationDuration: `${duration}s`
+    }}
+  />
+);
+
+const StartScreen = ({ onStartGame, onLoadGame, onLegacy }) => {
+  // Generate random particles
+  const particles = Array.from({ length: 20 }).map((_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 5,
+    duration: 3 + Math.random() * 4
+  }));
+
+  return (
+    <div className="relative h-screen w-full bg-stone-950 overflow-hidden flex flex-col items-center justify-center p-4">
+      {/* Background Texture Overlay */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none" 
+           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} 
+      />
+      
+      {/* Vignette */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#0c0a09_100%)] pointer-events-none" />
+
+      {/* Embers */}
+      {particles.map(p => (
+        <EmberParticle key={p.id} {...p} />
+      ))}
+
+      {/* Main Content */}
+      <div className="relative z-10 text-center space-y-12 max-w-2xl w-full">
+        
+        {/* Title Block */}
+        <div className="space-y-4 animate-fade-in-up">
+          <div className="flex items-center justify-center gap-4 text-amber-700 opacity-80">
+            <div className="h-[2px] w-12 bg-gradient-to-r from-transparent to-amber-700" />
+            <Skull size={24} />
+            <div className="h-[2px] w-12 bg-gradient-to-l from-transparent to-amber-700" />
+          </div>
+          
+          <h1 className="text-6xl md:text-8xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-amber-100 to-amber-700 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] tracking-tighter"
+              style={{ fontFamily: '"MedievalSharp", cursive' }}>
+            AETHELGARD
+          </h1>
+          <p className="text-stone-400 font-serif tracking-[0.2em] uppercase text-sm md:text-base">
+            Chronicles of the Fallen Realm
+          </p>
+        </div>
+
+        {/* Menu Block */}
+        <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <Button onClick={onStartGame} primary icon={Sword}>
+            NEW EXPEDITION
+          </Button>
+          
+          <Button onClick={onLoadGame} disabled icon={Save}>
+            RESUME CHRONICLE
+          </Button>
+          
+          <Button onClick={onLegacy} disabled icon={Crown}>
+            ANCESTRAL LEGACY
+          </Button>
+        </div>
+
+        {/* Footer */}
+        <div className="pt-12 text-stone-600 text-xs font-serif italic animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <p>"The castle gates stand open, yet few return..."</p>
+          <p className="mt-2 text-stone-700">v0.1.0 • Scenario 0</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN APP CONTROLLER ---
+
+export default function App() {
+  // Game State Machine: 0 = Start, 1 = Castle, 2 = Battle
+  const [scenario, setScenario] = useState(0);
+  const [gameState, setGameState] = useState(null);
+
+  // Initialize a new game
+  const handleNewGame = () => {
+    // Set up initial state based on user requirements
+    const newGameData = {
+      level: 1,
+      gold: 0,
+      roster: [...HERO_DEFAULTS], // The pool of available heroes
+      activeTeam: [], // Selected 4 heroes for expedition
+      inventory: [],
+      castleFacilities: {
+        mainHall: { level: 1 },
+        expeditionOffice: { level: 1 }
+      }
+    };
+    
+    setGameState(newGameData);
+    
+    // Slight delay for effect before transition
+    setTimeout(() => {
+      alert("Scenario 0 Complete. Transitioning to Castle logic...");
+      // In the next step, we would do: setScenario(1);
+    }, 500);
+  };
+
+  const handleLoadGame = () => {
+    // Placeholder for future development
+    console.log("Loading functionality coming soon...");
+  };
+
+  const handleLegacy = () => {
+    // Placeholder for future development
+    console.log("Legacy upgrades coming soon...");
+  };
+
+  // Logic to render the current scenario
+  const renderScenario = () => {
+    switch (scenario) {
+      case 0:
+        return (
+          <StartScreen 
+            onStartGame={handleNewGame}
+            onLoadGame={handleLoadGame}
+            onLegacy={handleLegacy}
+          />
+        );
+      case 1:
+        return (
+          <div className="h-screen w-full flex items-center justify-center bg-stone-900 text-amber-100 font-serif">
+            <div className="text-center">
+              <h2 className="text-4xl mb-4">Scenario 1: The Castle</h2>
+              <p>Work in progress...</p>
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div className="h-screen w-full flex items-center justify-center bg-stone-900 text-amber-100 font-serif">
+            <div className="text-center">
+              <h2 className="text-4xl mb-4">Scenario 2: The Battle</h2>
+              <p>Work in progress...</p>
+            </div>
+          </div>
+        );
+      default:
+        return <div>Unknown Scenario</div>;
+    }
+  };
+
+  return (
+    <>
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=MedievalSharp&display=swap');
+          
+          @keyframes float {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+          }
+          
+          .animate-float {
+            animation: float linear infinite;
+          }
+
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+
+          .animate-fade-in-up {
+            animation: fadeInUp 0.8s ease-out forwards;
+          }
+        `}
+      </style>
+      <div className="font-sans antialiased bg-stone-950 min-h-screen selection:bg-amber-900 selection:text-amber-100">
+        {renderScenario()}
+      </div>
+    </>
+  );
+}

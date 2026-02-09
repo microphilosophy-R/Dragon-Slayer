@@ -24,6 +24,11 @@ export class Character {
         this.description = data.description || '';
     }
 
+    // Helper for easier status checks
+    isAlive() {
+        return this.hp > 0;
+    }
+
     getSkills() {
         return this.skillIds.map(id => SKILL_CABINET[id]).filter(Boolean);
     }

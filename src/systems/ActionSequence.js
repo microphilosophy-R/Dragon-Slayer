@@ -1,55 +1,53 @@
 export class ActionSequence {
-    static resolveTurn(activeFaction, passiveFaction, diceValue) {
-        // 1. Identify Participants
-        // Active Faction members act OFFENSIVELY
-        // Passive Faction members act DEFENSIVELY
+    /**
+     * Executes a single turn where one faction is "Active".
+     * All characters act, but behave differently (Offensive vs Defensive) based on who is active.
+     */
+    static async resolveTurn(allFactions, activeFactionId, diceValue, extraContext = {}) {
+        let turnLogs = [];
 
-        let actions = [];
-        let logs = [];
+        // 1. Identify Active Logic
+        const activeFaction = allFactions.find(f => f.id === activeFactionId);
 
-        // Collect all potential actors
-        const activeActors = activeFaction.livingMembers.map(c => ({
-            actor: c,
-            mode: 'OFFENSIVE',
-            faction: activeFaction
-        }));
+        // 2. Gather All Living Actors
+        let allActors = [];
+        allFactions.forEach(f => {
+            allActors.push(...f.livingMembers);
+        });
 
-        const passiveActors = passiveFaction.livingMembers.map(c => ({
-            actor: c,
-            mode: 'DEFENSIVE',
-            faction: passiveFaction
-        }));
+        // 3. Sort by Speed (Descending)
+        // Note: Logic suggests "All characters shall be arranged with this method"
+        allActors.sort((a, b) => b.tempSpeed - a.tempSpeed);
 
-        let allActors = [...activeActors, ...passiveActors];
-
-        // 2. Sort by Speed (Descending)
-        // Resolves ties randomly or by some other logic? strict sort for now.
-        allActors.sort((a, b) => b.actor.tempSpeed - a.actor.tempSpeed);
-
-        // 3. Execute Actions in Order
-        for (let entry of allActors) {
-            const { actor, mode, faction } = entry;
-
-            // Re-check vitality (in case they died during this sequence?)
-            // Usually valid in simultaneous turns, but let's check.
+        // 4. Sequence Execution
+        for (const actor of allActors) {
             if (actor.hp <= 0) continue;
+
+            const isFirst = allActors[0].id === actor.id;
 
             // Context construction
             const context = {
                 dice: diceValue,
-                allies: faction.livingMembers,
-                enemies: (faction === activeFaction ? passiveFaction : activeFaction).livingMembers,
-                isFirst: allActors[0].actor.id === actor.id
+                activeFaction: activeFaction, // Vital for determining Mode
+                user: actor,
+                allies: allActors.filter(c => c.faction.id === actor.faction.id),
+                enemies: allActors.filter(c => c.faction.id !== actor.faction.id),
+                isFirst,
+                allFactions, // Pass full state if needed
+                ...extraContext
             };
 
-            const result = actor.executeSkill(mode, context.enemies, context);
+            // Delegate to Actor
+            // Actor handles "Mode" determination (Offensive/Defensive) internally
+            const results = await actor.act(context);
 
-            if (result) {
-                if (result.log) logs.push(result.log);
-                if (result.actions) actions.push(...result.actions);
+            if (results && results.length > 0) {
+                results.forEach(res => {
+                    if (res.log) turnLogs.push(res.log);
+                });
             }
         }
 
-        return { logs, actions };
+        return { logs: turnLogs };
     }
 }

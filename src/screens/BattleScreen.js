@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { CharacterCard } from '../components/ui/CharacterCard';
 import { Character } from '../models/Character';
 import { Faction } from '../models/Faction';
-import { ActionSequence } from '../systems/ActionSequence';
+import { Combat } from '../systems/Combat';
 import { LEVELS } from '../data/levels';
 
 const rollDice = (sides = 6) => Math.floor(Math.random() * sides) + 1;
@@ -15,13 +15,17 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     const [battleRound, setBattleRound] = useState(1);
     const [battleLog, setBattleLog] = useState(["Battle Started!"]);
     const [diceValue, setDiceValue] = useState(0);
+    const [diceHistory, setDiceHistory] = useState([]);
+    const [memory, setMemory] = useState({});
 
     // Faction State
     // Faction[0] = Player, Faction[1] = Computer
     const [factions, setFactions] = useState([]);
 
-    // UI selection state (if manual targeting is added later)
+    // UI selection state
     const [selectedCharacter, setSelectedCharacter] = useState(null);
+    // Targeting State: { active: boolean, candidates: [], resolve: fn }
+    const [targetingState, setTargetingState] = useState(null);
 
     const logRef = useRef(null);
     const scrollRef = useRef(null);
@@ -56,6 +60,36 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
     // --- CORE LOGIC ---
 
+    // --- CORE LOGIC ---
+
+    const requestPlayerTarget = (candidates) => {
+        return new Promise((resolve) => {
+            setTargetingState({
+                active: true,
+                candidates: candidates,
+                resolve: (target) => {
+                    setTargetingState(null);
+                    resolve(target);
+                }
+            });
+            addLog("Choose your target!");
+        });
+    };
+
+    const handleCardClick = (char) => {
+        if (targetingState?.active) {
+            // Check if valid candidate
+            const isValid = targetingState.candidates.find(c => c.id === char.id);
+            if (isValid) {
+                targetingState.resolve(char);
+            } else {
+                addLog("Invalid target.");
+            }
+        } else {
+            setSelectedCharacter(char);
+        }
+    };
+
     const checkWinCondition = (currentFactions) => {
         const playerAlive = currentFactions[0].livingMembers.length > 0;
         const enemyAlive = currentFactions[1].livingMembers.length > 0;
@@ -71,121 +105,73 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         return false;
     };
 
-    const handleTurn = async (activeFactionIndex, roll) => {
+    const handleTurn = async (activeFactionIndexProp, roll) => {
+        // NOTE: We ignore activeFactionIndexProp and always assume Player Start -> Enemy Follows
+        // because the UI flow drives "Roll -> Round Execution".
+
         setTurnPhase('RESOLVING');
 
-        // Clone State for processing
-        // We need deep clones of characters to avoid mutation issues during calculation if we want "undo" etc,
-        // but for now we essentially mutate the "next state" and set it.
-        // To allow React to update, we create new Faction objects with new Character instances.
+        // 1. Snapshot State (Clone) to ensure proper mutation tracking
+        // We use an internal variable `currentFactions` to track state across the async steps.
+        let currentFactions = Combat.cloneFactions(factions);
 
-        const nextFactions = factions.map(f => {
-            const newChars = f.characters.map(c => {
-                const copy = new Character({ ...c, skills: c.skillIds }); // Re-instantiate
-                // Copy runtime props
-                copy.hp = c.hp;
-                copy.defense = c.defense;
-                copy.tempSpeed = c.tempSpeed;
-                return copy;
-            });
-            return new Faction(f.id, f.type, f.name, newChars);
+        // --- PLAYER TURN ---
+        const playerFactionId = currentFactions[0].id;
+        addLog(`${currentFactions[0].name} Turn (Dice: ${roll})`);
+
+        // Wait a bit for effect
+        await new Promise(r => setTimeout(r, 600));
+
+        const res1 = await Combat.processMainTurn(currentFactions, playerFactionId, roll, {
+            history: diceHistory,
+            memory,
+            requestPlayerTarget
         });
 
-        const activeFaction = nextFactions[activeFactionIndex];
-        const passiveFaction = nextFactions[activeFactionIndex === 0 ? 1 : 0];
+        // Update Logs & State
+        res1.logs.forEach(l => addLog(l));
+        setFactions([...currentFactions]); // Render updates
 
-        addLog(`${activeFaction.name} Turn(Dice: ${roll})`);
+        if (checkWinCondition(currentFactions)) return;
 
-        // Execute Sequence
-        await new Promise(r => setTimeout(r, 600)); // Dramatic pause
-
-        const { logs, actions } = ActionSequence.resolveTurn(activeFaction, passiveFaction, roll);
-
-        // Update Log
-        logs.forEach(l => addLog(l));
-
-        // Apply Actions (Damage, Heal, Buffs)
-        actions.forEach(action => {
-            // Find target in ALL factions
-            let target = null;
-            let targetFaction = null;
-
-            for (let f of nextFactions) {
-                target = f.getCharacter(action.targetId);
-                if (target) {
-                    targetFaction = f;
-                    break;
-                }
-            }
-
-            if (target) {
-                if (action.type === 'DAMAGE') {
-                    // Logic for applying damage (Reduction by defense etc)
-                    // Simplified here, assuming ActionSequence might have calculated raw dmg?
-                    // Or do we calculate defense here? 
-                    // Let's assume ActionSequence returns raw "Output" and we apply defense mitigation here?
-                    // Or logic inside Character.executeSkill handles it?
-                    // Previous logic: target.defense reduced damage.
-
-                    let dmg = action.amount;
-                    if (target.defense > 0) {
-                        const mitigation = Math.min(target.defense, dmg);
-                        target.defense -= mitigation;
-                        dmg -= mitigation;
-                    }
-                    target.hp = Math.max(0, target.hp - dmg);
-                } else if (action.type === 'HEAL') {
-                    target.hp = Math.min(target.maxHp, target.hp + action.amount);
-                } else if (action.type === 'BUFF') {
-                    if (action.stat === 'defense') target.defense += action.amount;
-                    if (action.stat === 'speed') target.tempSpeed += action.amount;
-                }
-            }
-        });
-
-        // Update State
-        setFactions(nextFactions);
-
-        if (checkWinCondition(nextFactions)) return;
-
-        // Transition Phase
+        // --- ENEMY TURN ---
+        setTurnPhase('ENEMY_WAIT');
         await new Promise(r => setTimeout(r, 1000));
 
-        if (activeFactionIndex === 0) {
-            // Player just finished. Enemy Turn Next.
-            setTurnPhase('ENEMY_WAIT');
-            // Auto-trigger enemy? Or wait for click? User often acts generic "Next Turn"?
-            // Let's auto-trigger enemy after delay for flow.
-            setTimeout(() => handleEnemyTurn(nextFactions), 1000);
-        } else {
-            // Enemy just finished. New Round.
-            setBattleRound(r => r + 1);
-            setTurnPhase('PLAYER_WAIT_ROLL');
-            addLog(`=== Round ${battleRound + 1} === `);
-        }
+        const enemyRoll = rollDice();
+        // Update dice UI for enemy?
+        setDiceValue(enemyRoll);
+        const newHistory = [...diceHistory, enemyRoll];
+        setDiceHistory(newHistory);
+        addLog(`${currentFactions[1].name} Turn (Dice: ${enemyRoll})`);
+
+        const enemyFactionId = currentFactions[1].id;
+        const res2 = await Combat.processMainTurn(currentFactions, enemyFactionId, enemyRoll, {
+            history: newHistory,
+            memory,
+            // Enemy doesn't use manual targeting, but pass it just in case of weird skills
+            requestPlayerTarget
+        });
+
+        res2.logs.forEach(l => addLog(l));
+        setFactions([...currentFactions]);
+
+        if (checkWinCondition(currentFactions)) return;
+
+        // --- END ROUND ---
+        setBattleRound(r => r + 1);
+        setTurnPhase('PLAYER_WAIT_ROLL');
+        addLog(`=== Round ${battleRound + 1} === `);
     };
 
     const handlePlayerRoll = () => {
         const roll = rollDice();
         setDiceValue(roll);
-        handleTurn(0, roll); // 0 = Player Faction
+        setDiceHistory(prev => [...prev, roll]);
+        handleTurn(0, roll);
     };
 
-    const handleEnemyTurn = (currentFactions) => {
-        // Can fail if component unmounted, catch?
-        const roll = rollDice();
-        setDiceValue(roll);
-        // We pass currentFactions just to be safe, but handleTurn uses state. 
-        // Actually handleTurn uses state `factions`.
-        // If we call handleTurn via setTimeout, `factions` might be stale closure if not careful?
-        // But handleTurn uses `factions` from closure. 
-        // We should trigger a state update that triggers the effect?
-        // Or just allow the function to run. 
-        // BETTER: Use a separate useEffect or ensure handleTurn has access to fresh state via refs or functional updates?
-        // Simpler: Just resolve purely. 
-        // For this refactor I will rely on standard flow.
-        handleTurn(1, roll); // 1 = Enemy Faction
-    };
+    // handleEnemyTurn is removed as it's now integrated directly into handleTurn sequence.
 
     // --- RENDER ---
     if (factions.length < 2) return <div className="p-10 text-white">Loading Factions...</div>;
@@ -215,15 +201,21 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                         <Swords size={16} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {playerFaction.characters.map(char => (
-                            <CharacterCard
-                                key={char.id}
-                                char={char}
-                                defense={char.defense}
-                                onClick={() => setSelectedCharacter(char)}
-                                className={char.hp <= 0 ? 'opacity-50 grayscale' : ''}
-                            />
-                        ))}
+                        {playerFaction.characters.map(char => {
+                            const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
+                            return (
+                                <CharacterCard
+                                    key={char.id}
+                                    char={char}
+                                    defense={char.defense}
+                                    onClick={() => handleCardClick(char)}
+                                    className={`
+                                    ${char.hp <= 0 ? 'opacity-50 grayscale' : ''}
+                                    ${isTargetable ? 'ring-2 ring-amber-400 cursor-pointer scale-105' : ''}
+                                `}
+                                />
+                            )
+                        })}
                     </div>
                 </div>
 
@@ -239,15 +231,22 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                         <Skull size={16} />
                     </div>
                     <div className="flex flex-col gap-3 items-center">
-                        {enemyFaction.characters.map(char => (
-                            <CharacterCard
-                                key={char.id}
-                                char={char}
-                                defense={char.defense}
-                                compact
-                                className={char.hp <= 0 ? 'opacity-50 grayscale' : ''}
-                            />
-                        ))}
+                        {enemyFaction.characters.map(char => {
+                            const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
+                            return (
+                                <CharacterCard
+                                    key={char.id}
+                                    char={char}
+                                    defense={char.defense}
+                                    compact
+                                    onClick={() => handleCardClick(char)}
+                                    className={`
+                                    ${char.hp <= 0 ? 'opacity-50 grayscale' : ''}
+                                    ${isTargetable ? 'ring-2 ring-red-500 cursor-pointer scale-105' : ''}
+                                `}
+                                />
+                            )
+                        })}
                     </div>
                 </div>
             </div>
@@ -261,7 +260,11 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                         </Button>
                     ) : (
                         <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded">
-                            {turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." : "Resolving Combat..."}
+                            {targetingState?.active ? (
+                                <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
+                            ) : (
+                                turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." : "Resolving Combat..."
+                            )}
                         </div>
                     )}
                 </div>

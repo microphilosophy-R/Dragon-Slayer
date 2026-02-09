@@ -4,9 +4,11 @@ export class Faction {
         this.type = type; // 'PLAYER' or 'COMPUTER'
         this.name = name;
         this.characters = characters; // Array of Character objects
+        this.characters.forEach(c => c.faction = this);
     }
 
     addCharacter(character) {
+        character.faction = this;
         this.characters.push(character);
     }
 

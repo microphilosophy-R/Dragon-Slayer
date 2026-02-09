@@ -1,256 +1,231 @@
-
-// Skill Cabinet - Central Registry of all skills
-// Each skill is an object with:
-// - id: unique identifier
-// - name: display name
-// - type: 'OFFENSIVE' (active turn) or 'DEFENSIVE' (opponent turn)
-// - description: text description
-// - execute: function(user, targets, context) -> { log: string, damage?: number, heal?: number, effects?: object }
+import { Skill } from '../models/Skill';
 
 export const SKILL_CABINET = {
     // --- MERLIN ---
-    "merlin_offensive": {
+    "merlin_offensive": new Skill({
         id: "merlin_offensive",
         name: "Fireball",
         type: "OFFENSIVE",
         description: "4 DMG if dice is 6.",
-        execute: (user, targets, context) => {
+        targetingMode: 'MANUAL',
+        checkConditions: (context) => true,
+        getTargets: (context) => {
+            return context.enemies.filter(e => e.isAlive());
+        },
+        execute: (targets, context) => {
             const { dice } = context;
-            const target = targets[0]; // Single target by default
+            const target = targets[0];
+            if (!target) return { log: "No target found." };
+
             if (dice === 6) {
-                return {
-                    log: `${user.name} casts Fireball! 4 DMG to ${target.name}.`,
-                    actions: [{ type: 'DAMAGE', targetId: target.id, amount: 4 }]
-                };
+                target.takeDamage(4);
+                return { log: `Merlin casts Fireball! 4 DMG to ${target.name}.` };
             }
-            return { log: `${user.name} charges magic... (Dice ${dice})`, actions: [] };
+            return { log: `Merlin charges magic... (Dice ${dice})` };
         }
-    },
-    "merlin_defensive": {
+    }),
+    "merlin_defensive": new Skill({
         id: "merlin_defensive",
         name: "Clairvoyance",
         type: "DEFENSIVE",
-        description: "If dice is 6 (Critical Threat), prevent action.",
-        execute: (user, targets, context) => {
-            const { dice } = context;
-            // Merlin's defensive: "If you are the first to take action..." -> Original was initiative based.
-            // New requirement: Defensive skill acts on opponent turn.
-            // Let's interpret: If opponent rolls a 6 (Crit), Merlin foresees it and mitigates?
-            if (dice === 6) {
-                return {
-                    log: `${user.name} foresees the danger! Mitigates the incoming critical hit.`,
-                    actions: [{ type: 'MITIGATE', amount: 100 }] // Mitigate all damage
-                };
-            }
-            return { log: null, actions: [] };
+        description: "If dice is 6, mitigate all damage.",
+        checkConditions: (context) => context.dice === 6,
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            // Logic for mitigation should ideally prevent damage *before* it happens.
+            // But 'react' happens when targeted? 
+            // For now, let's say it adds a huge defense buffer or similar.
+            // Or maybe user wants "Reaction" to interrupt?
+            // "The determinator will decide... execute pure executable actions."
+            // If this is called, it means "Defensive Phase". 
+            // Maybe it adds defense for the rest of the turn?
+            const target = targets[0];
+            target.defense += 99; // Temporary immunity?
+            return { log: "Merlin foresees the attack! (Mitigation active)" };
         }
-    },
+    }),
 
     // --- ARTHUR ---
-    "arthur_offensive": {
+    "arthur_offensive": new Skill({
         id: "arthur_offensive",
         name: "Righteous Strike",
         type: "OFFENSIVE",
         description: "1 DMG if dice >= 4.",
-        execute: (user, targets, context) => {
+        checkConditions: (context) => true,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
             const { dice } = context;
             const target = targets[0];
             if (dice >= 4) {
-                return {
-                    log: `${user.name} strikes with honor! 1 DMG to ${target.name}.`,
-                    actions: [{ type: 'DAMAGE', targetId: target.id, amount: 1 }]
-                };
+                target.takeDamage(1);
+                return { log: `Arthur strikes with honor! 1 DMG to ${target.name}.` };
             }
-            return { log: `${user.name} misses.`, actions: [] };
+            return { log: `Arthur misses.` };
         }
-    },
-    "arthur_defensive": {
+    }),
+    "arthur_defensive": new Skill({
         id: "arthur_defensive",
         name: "Holy Aura",
         type: "DEFENSIVE",
         description: "Heal a random ally if dice matches history.",
-        // Original: "Record dice result. Fully heal if repeated."
-        execute: (user, targets, context) => {
-            const { dice, history, allies } = context;
-            // Check for repeat
-            const occurrences = history.filter(r => r === dice).length;
-            if (occurrences > 1) { // 1 is current, >1 means repeated
-                // Heal random ally
-                const ally = allies[Math.floor(Math.random() * allies.length)];
-                return {
-                    log: `${user.name}'s aura shines! Fully heals ${ally.name}.`,
-                    actions: [{ type: 'HEAL', targetId: ally.id, amount: 999 }]
-                };
-            }
-            return { log: null, actions: [] };
+        checkConditions: (context) => {
+            const { dice, history } = context;
+            const occurrences = (history || []).filter(r => r === dice).length;
+            // The history includes the current roll? Usually passed history is *past* rolls.
+            // Check context creation.
+            return occurrences > 0; // If seen before
+        },
+        getTargets: (context) => context.allies.filter(a => a.isAlive()),
+        execute: (targets, context) => {
+            // Random ally
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            const healed = target.heal(999);
+            return { log: `Arthur's aura shines! Healed ${target.name} for ${healed}.` };
         }
-    },
+    }),
 
     // --- ARCHER ---
-    "archer_offensive": {
+    "archer_offensive": new Skill({
         id: "archer_offensive",
         name: "Quick Shot",
         type: "OFFENSIVE",
         description: "1 DMG. If first to act, -1 Speed.",
-        execute: (user, targets, context) => {
-            const { isFirst } = context;
+        checkConditions: (context) => true,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
+            const { isFirst, user } = context;
             const target = targets[0];
-            const actions = [{ type: 'DAMAGE', targetId: target.id, amount: 1 }];
-            let log = `${user.name} fires! 1 DMG.`;
+            target.takeDamage(1);
+            let log = `Archer fires! 1 DMG to ${target.name}.`;
 
             if (isFirst) {
-                actions.push({ type: 'MODIFY_STAT', targetId: user.id, stat: 'speed', amount: -1 });
+                user.modifyStat('speed', -1);
                 log += ` (Speed -1)`;
             }
-            return { log, actions };
+            return { log };
         }
-    },
-    "archer_defensive": {
+    }),
+    "archer_defensive": new Skill({
         id: "archer_defensive",
         name: "Trap Setting",
         type: "DEFENSIVE",
         description: "Deal 1 DMG to enemy if dice is Even.",
-        execute: (user, targets, context) => {
-            // Defensive: Used on Enemy Turn. Target is likely the Enemy acting.
-            const { dice } = context;
-            const target = targets[0]; // The enemy
-            if (dice % 2 === 0) {
-                return {
-                    log: `${user.name}'s trap triggers! 1 DMG to ${target.name}.`,
-                    actions: [{ type: 'DAMAGE', targetId: target.id, amount: 1 }]
-                };
-            }
-            return { log: null, actions: [] };
+        checkConditions: (context) => context.dice % 2 === 0,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
+            const target = targets[0];
+            target.takeDamage(1);
+            return { log: `Archer's trap snaps! 1 DMG to ${target.name}.` };
         }
-    },
+    }),
 
     // --- ARCHITECT ---
-    "architect_offensive": {
+    "architect_offensive": new Skill({
         id: "architect_offensive",
         name: "Fortify",
         type: "OFFENSIVE",
         description: "Give an ally +2 Defense.",
-        execute: (user, targets, context) => {
-            // Target: Random Ally or Selected? Let's pick Random Ally for now to keep it simple or pass in target.
-            // Context should provide allies to pick from if no explicit target
-            const { allies } = context;
-            const target = allies[Math.floor(Math.random() * allies.length)];
-            return {
-                log: `${user.name} fortifies ${target.name}. +2 Defense.`,
-                actions: [{ type: 'BUFF', targetId: target.id, stat: 'defense', amount: 2 }]
-            };
+        checkConditions: (context) => true,
+        getTargets: (context) => context.allies.filter(a => a.isAlive()),
+        execute: (targets, context) => {
+            const target = targets[Math.floor(Math.random() * targets.length)];
+            target.modifyStat('defense', 2);
+            return { log: `Architect fortifies ${target.name}. +2 Defense.` };
         }
-    },
-    "architect_defensive": {
+    }),
+    "architect_defensive": new Skill({
         id: "architect_defensive",
         name: "Collapse",
         type: "DEFENSIVE",
         description: "Deal DMG equal to Dice (Once per battle).",
-        execute: (user, targets, context) => {
-            const { dice, memory } = context; // Memory to store "used" state
+        checkConditions: (context) => {
+            const { dice, memory } = context;
+            return !memory.architectUsed && dice >= 4;
+        },
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
+            const { dice, memory } = context;
             const target = targets[0];
-            if (!memory.architectUsed) {
-                if (dice >= 4) { // Only trigger on high rolls to be worth it? Or always? Let's say >= 4 for strategy
-                    return {
-                        log: `${user.name} collapses the ceiling! ${dice} DMG to ${target.name}.`,
-                        actions: [
-                            { type: 'DAMAGE', targetId: target.id, amount: dice },
-                            { type: 'MEMORY', key: 'architectUsed', value: true }
-                        ]
-                    };
-                }
-            }
-            return { log: null, actions: [] };
+            target.takeDamage(dice);
+            memory.architectUsed = true;
+            return { log: `Architect collapses the ceiling! ${dice} DMG to ${target.name}.` };
         }
-    },
+    }),
 
     // --- ENEMIES ---
 
     // REBEL
-    "rebel_offensive": {
+    "rebel_offensive": new Skill({
         id: "rebel_offensive",
         name: "Multi-Attack",
         type: "OFFENSIVE",
         description: "1 DMG. If dice <= 3, 2 DMG to another.",
-        execute: (user, targets, context) => {
+        checkConditions: (context) => true,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
             const { dice } = context;
-            // Targets: Heroes. 
-            // Pick random
+            // Target 1
             const t1 = targets[Math.floor(Math.random() * targets.length)];
-            const actions = [{ type: 'DAMAGE', targetId: t1.id, amount: 1 }];
-            let log = `${user.name} attacks ${t1.name} (1 DMG).`;
+            t1.takeDamage(1);
+            let log = `Rebel attacks ${t1.name} (1 DMG).`;
 
             if (dice <= 3 && targets.length > 1) {
                 const others = targets.filter(t => t.id !== t1.id);
                 if (others.length > 0) {
                     const t2 = others[Math.floor(Math.random() * others.length)];
-                    actions.push({ type: 'DAMAGE', targetId: t2.id, amount: 2 });
+                    t2.takeDamage(2);
                     log += ` And frenzies on ${t2.name} (2 DMG)!`;
                 }
             }
-            return { log, actions };
+            return { log };
         }
-    },
-    "rebel_defensive": {
+    }),
+    "rebel_defensive": new Skill({
         id: "rebel_defensive",
         name: "Desperation",
         type: "DEFENSIVE",
         description: "Take 1 DMG to deal 1 DMG, unless dice is 1.",
-        execute: (user, targets, context) => {
-            // Target: The hero acting? Or random hero?
-            // Defensive usually reacts to the actor.
-            const { dice } = context;
-            const target = targets[0]; // The hero acting
-            if (dice !== 1) {
-                return {
-                    log: `${user.name} counter-attacks! 1 DMG to ${target.name}, 1 DMG to self.`,
-                    actions: [
-                        { type: 'DAMAGE', targetId: target.id, amount: 1 },
-                        { type: 'DAMAGE', targetId: user.id, amount: 1 }
-                    ]
-                };
-            }
-            return { log: null, actions: [] };
+        checkConditions: (context) => context.dice !== 1,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
+            const target = targets[0];
+            const user = context.user;
+            target.takeDamage(1);
+            user.takeDamage(1);
+            return { log: `Rebel attacks recklessly! 1 DMG to ${target.name}, 1 DMG to self.` };
         }
-    },
+    }),
 
     // DRAGON
-    "dragon_offensive": {
+    "dragon_offensive": new Skill({
         id: "dragon_offensive",
         name: "Dragon Breath",
         type: "OFFENSIVE",
         description: "2 DMG. If dice 6, 2 DMG to ALL.",
-        execute: (user, targets, context) => {
+        checkConditions: (context) => true,
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        execute: (targets, context) => {
             const { dice } = context;
             if (dice === 6) {
-                const actions = targets.map(t => ({ type: 'DAMAGE', targetId: t.id, amount: 2 }));
-                return {
-                    log: `${user.name} breathes fire! 2 DMG to ALL!`,
-                    actions
-                };
+                targets.forEach(t => t.takeDamage(2));
+                return { log: `Dragon breathes fire! 2 DMG to ALL!` };
             }
-            // Normal attack
             const t1 = targets[Math.floor(Math.random() * targets.length)];
-            return {
-                log: `${user.name} bites ${t1.name}. 2 DMG.`,
-                actions: [{ type: 'DAMAGE', targetId: t1.id, amount: 2 }]
-            };
+            t1.takeDamage(2);
+            return { log: `Dragon bites ${t1.name}. 2 DMG.` };
         }
-    },
-    "dragon_defensive": {
+    }),
+    "dragon_defensive": new Skill({
         id: "dragon_defensive",
         name: "Hard scales",
         type: "DEFENSIVE",
         description: "+1 Defense if dice <= 3.",
-        execute: (user, targets, context) => {
-            const { dice } = context;
-            if (dice <= 3) {
-                return {
-                    log: `${user.name}'s scales harden. +1 Defense.`,
-                    actions: [{ type: 'BUFF', targetId: user.id, stat: 'defense', amount: 1 }]
-                };
-            }
-            return { log: null, actions: [] };
+        checkConditions: (context) => context.dice <= 3,
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            const user = context.user;
+            user.modifyStat('defense', 1);
+            return { log: `Dragon's scales harden. +1 Defense.` };
         }
-    }
+    })
 };

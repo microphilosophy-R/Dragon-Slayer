@@ -10,9 +10,9 @@ export class Character {
         this.speed = data.speed;
         this.tempSpeed = data.speed; // Runtime speed
         this.defense = data.defense || 0;
+        this.faction = null; // Reference to Faction object
 
-        // Skills (Array of IDs or Objects)
-        // User requested: Faction -> Characters -> Skills
+        // Skills (Array of IDs or Objects)ted: Faction -> Characters -> Skills
         // We will store IDs and resolve them, or store usage context
         this.skillIds = data.skills || data.skillIds || [];
 
@@ -29,17 +29,64 @@ export class Character {
     }
 
     // Consolidated method as requested: "use a parameter to determine"
-    executeSkill(mode, targets, context) {
+    getSkill(mode) {
         // Mode: 'OFFENSIVE' or 'DEFENSIVE'
-        // For now, we pick the first skill that matches the mode OR just the first skill if generic?
-        // Most simple logic: Try to find a skill that explicitly claims to support this mode, 
-        // OR if the skill is generic, use it.
-        // Current SKILL_CABINET info has 'type'.
+        return this.getSkills().find(s => s.type === mode || s.type === 'BOTH');
+    }
 
-        const relevantSkill = this.getSkills().find(s => s.type === mode || s.type === 'BOTH');
+    // --- State Mutation Methods ---
+    takeDamage(amount) {
+        if (this.hp <= 0) return 0;
 
-        if (!relevantSkill) return { log: `${this.name} has no ${mode} skill!`, actions: [] };
+        let actualDamage = amount;
+        if (this.defense > 0) {
+            const mitigation = Math.min(this.defense, actualDamage);
+            this.defense -= mitigation;
+            actualDamage -= mitigation;
+        }
 
-        return relevantSkill.execute(this, targets, context);
+        this.hp = Math.max(0, this.hp - actualDamage);
+        return actualDamage; // Return actual damage taken for logging if needed
+    }
+
+    heal(amount) {
+        if (this.hp <= 0) return 0;
+        const oldHp = this.hp;
+        this.hp = Math.min(this.maxHp, this.hp + amount);
+        return this.hp - oldHp;
+    }
+
+    modifyStat(stat, amount) {
+        if (stat === 'speed') {
+            this.tempSpeed += amount;
+        } else if (stat === 'defense') {
+            this.defense += amount;
+        }
+    }
+
+    async act(context) {
+        const results = [];
+        // Determine mode based on context.activeFaction
+        // If it's MY faction's turn, I use OFFENSIVE.
+        // If it's NOT my faction's turn, I might use DEFENSIVE (if targeted/triggered).
+
+        // However, the standard "Act" call usually implies it IS my turn.
+        // The user said: "Faction[0]'s turn... Faction[0] characters execute offensive skills"
+        // So `act` should primarily run OFFENSIVE skills if it is my turn.
+
+        // We can pass a specific mode if we want to force something, 
+        // but default should be determined by context or just 'OFFENSIVE' for the main loop.
+
+        const isMyTurn = context.activeFaction && this.faction && context.activeFaction.id === this.faction.id;
+        const mode = isMyTurn ? 'OFFENSIVE' : 'DEFENSIVE';
+
+        const skills = this.getSkills();
+
+        for (const skill of skills) {
+            // skill.perform will check internal type vs mode and validity
+            const result = await skill.perform(this, { ...context, mode });
+            if (result) results.push(result);
+        }
+        return results;
     }
 }

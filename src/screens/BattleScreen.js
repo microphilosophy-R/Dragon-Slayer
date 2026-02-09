@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dices, Skull, Zap, Heart, Shield } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { CharacterCard } from '../components/ui/CharacterCard';
+import { Character } from '../models/Character';
 import { getEnemy } from '../data/enemies';
 
 const rollDice = (sides = 6) => Math.floor(Math.random() * sides) + 1;
@@ -24,20 +25,15 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
     // Initialize Battle
     useEffect(() => {
-        // Clone heroes for battle (to track battle-specific HP/Status without mutating global state immediately if we want retry)
-        // For roguelike, usually damage triggers immediately. Let's use the object instances.
-        // However, to trigger React updates, we need state.
-        // We will initialize state from the passed instances.
-        // We need to re-instantiate them or deep clone to avoid modifying the "roster" directly until end? 
-        // Or just modify them?
-        // Let's modify a copy to allow "Reset" if needed, or simple flow: Damage is permanent.
-        // "Roguelike" -> Damage is permanent.
-        // But for React state to work on specific battle fields (defense, temp speed), we need wrapper.
+        // Clone heroes for battle using proper class instantiation to ensure methods exist
         const heroes = gameState.activeTeam.map(id => {
             const char = gameState.roster.find(c => c.id === id);
-            // We assume char is a Character instance or object.
-            // We add battle-specific properties here.
-            return Object.assign(Object.create(Object.getPrototypeOf(char)), char, { defense: 0, tempSpeed: char.speed });
+            // Re-hydrate to ensure it has Character prototype methods
+            const instance = new Character(char);
+            instance.defense = 0;
+            instance.speed = char.speed; // Ensure speed is current
+            instance.tempSpeed = char.speed;
+            return instance;
         });
         setBattleHeroes(heroes);
 
@@ -47,6 +43,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         setEnemy(enemyInstance);
 
         addLog(`Encountered: ${enemyInstance.name}!`);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Auto scroll log
@@ -92,39 +89,9 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         addLog(`Dice: ${roll}. Order: ${participants.map(p => p.name).join(' > ')}`);
 
         // 2. Iterate Actions using SKILL CABINET
-        for (let actor of participants) {
-            if (checkWinCondition(currentHeroes, currentEnemy)) return;
-
-            // Re-fetch latest actor state from local lists (HP might have changed)
-            let realActor;
-            if (actor.type === 'HERO') realActor = currentHeroes.find(h => h.id === actor.id);
-            else realActor = currentEnemy;
-
-            if (!realActor || realActor.hp <= 0) continue;
-
-            await new Promise(r => setTimeout(r, 800));
-
-            const ctx = {
-                dice: roll,
-                history: diceHistory,
-                memory,
-                allies: actor.type === 'HERO' ? currentHeroes.filter(h => h.hp > 0) : [currentEnemy], // "Allies" from actor perspective
-                enemies: actor.type === 'HERO' ? [currentEnemy] : currentHeroes.filter(h => h.hp > 0),
-                isFirst: participants[participants.length - 1].id === actor.id // "Fastest" acts last in sort? 
-                // Wait, sort(a.speed - b.speed) -> Ascending. Smallest (1) first, Largest (speed 9) last. 
-                // Usually high speed acts first?
-                // Let's assume High Speed = Acts First?
-                // If sort ascending, then index 0 is slowest. Index N is fastest.
-                // If we iterate array, we go 0..N (Slowest -> Fastest).
-                // Wait, "Act First" usually means "Earlier in the turn".
-                // Let's reverse the sort for descending speed.
-            };
-            // Correction: Sort Descending for Speed
-            // participants.sort((a, b) => (b.tempSpeed || b.speed) - (a.tempSpeed || a.speed));
-            // RE-SORTING inside loop is messy. Let's fix the initial sort.
-        }
 
         // Correct Sort: Descending Speed
+
         participants.sort((a, b) => (b.tempSpeed || b.speed) - (a.tempSpeed || a.speed));
 
         for (let actor of participants) {

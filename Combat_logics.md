@@ -55,11 +55,37 @@ Every Skill follows a strict 3-step process:
 ## 5. State Management
 
 To ensure data integrity during the async flow of battle:
--   **Cloning**: The `Combat` system clones the entire state of factions and characters at the start of a turn sequence.
--   **Mutation**: Actions mutate these clones directly.
--   **Persistence**: The mutated state is returned to the UI (React) to update the view.
+-   **Cloning**: The `BattleScreen` (UI) calls `Combat.cloneFactions` **once** at the start of a sequence to create a mutable snapshot.
+-   **Mutation**: `Combat.processMainTurn` receives these mutable objects and actions modify them directly.
+-   **Persistence**: The mutated state is passed along the chain (Player Turn -> Enemy Turn) and then saved to the UI state.
 
-## 6. Directory Structure
+## 6. Mutation Flow Details
+
+When a Skill executes (e.g., `Fireball`), it does not return an "Action Object" (like `{ type: 'DAMAGE' }`). Instead, it calls methods on the target character instance directly.
+
+### Step-by-Step Example:
+1.  **Clone**: `BattleScreen` creates copies of all characters.
+    -   `Char_A (HP: 10)` (Copy in memory)
+2.  **Execution**: `skills.js` runs `Fireball`:
+    ```javascript
+    execute: (targets) => {
+        const target = targets[0]; // Reference to Char_A (Copy)
+        target.takeDamage(4);      // MUTATION: Char_A.hp becomes 6
+    }
+    ```
+3.  **Propagation**:
+    -   The `ActionSequence` loop continues. The next character in line sees `Char_A` has 6 HP.
+    -   If `Char_A` acts next, they act with 6 HP.
+4.  **Render**:
+    -   After the turn sequence finishes, `BattleScreen` calls `setFactions([mutated_factions])`.
+    -   React re-renders the UI to show 6 HP.
+
+This "Direct Mutation on Clones" pattern ensures that:
+-   Game logic is simple and imperative (`takeDamage()`).
+-   React state remains pure (we only mutate the clone, then replace state).
+-   Turn logic is consistent (subsequent actors see the results of previous actions immediately).
+
+## 7. Directory Structure
 
 -   `src/systems/Combat.js`: Orchestrates the Turn and Round logic.
 -   `src/systems/ActionSequence.js`: Handles the sorting and iteration of actors.

@@ -1,4 +1,3 @@
-
 import { Character } from '../models/Character';
 
 const HERO_DATA = [
@@ -9,8 +8,8 @@ const HERO_DATA = [
         hp: 4,
         maxHp: 4,
         speed: 6,
-        offensiveSkillId: 'merlin_offensive',
-        defensiveSkillId: 'merlin_defensive'
+        skills: ['merlin_offensive', 'merlin_defensive'],
+        description: 'A powerful wizard who controls fire.'
     },
     {
         id: 'arthur',
@@ -19,8 +18,8 @@ const HERO_DATA = [
         hp: 7,
         maxHp: 7,
         speed: 4,
-        offensiveSkillId: 'arthur_offensive',
-        defensiveSkillId: 'arthur_defensive'
+        skills: ['arthur_offensive', 'arthur_defensive'],
+        description: 'The righteous king with a holy aura.'
     },
     {
         id: 'archer',
@@ -29,8 +28,8 @@ const HERO_DATA = [
         hp: 5,
         maxHp: 5,
         speed: 8,
-        offensiveSkillId: 'archer_offensive',
-        defensiveSkillId: 'archer_defensive'
+        skills: ['archer_offensive', 'archer_trap'], // Corrected ID from previous file glimpse
+        description: 'A master marksman.'
     },
     {
         id: 'architect',
@@ -39,8 +38,8 @@ const HERO_DATA = [
         hp: 4,
         maxHp: 4,
         speed: 1,
-        offensiveSkillId: 'architect_offensive',
-        defensiveSkillId: 'architect_defensive'
+        skills: ['architect_fortify', 'architect_collapse'], // Corrected IDs
+        description: 'Builds and destroys fortifications.'
     }
 ];
 

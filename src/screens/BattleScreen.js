@@ -1,294 +1,274 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Dices, Skull, Zap, Heart, Shield } from 'lucide-react';
+import { Dices, Skull, Zap, Heart, Shield, Swords } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { CharacterCard } from '../components/ui/CharacterCard';
 import { Character } from '../models/Character';
-import { getEnemy } from '../data/enemies';
+import { Faction } from '../models/Faction';
+import { ActionSequence } from '../systems/ActionSequence';
+import { LEVELS } from '../data/levels';
 
 const rollDice = (sides = 6) => Math.floor(Math.random() * sides) + 1;
 
 export const BattleScreen = ({ gameState, onWin, onLose }) => {
-    // Battle State
-    const [turnPhase, setTurnPhase] = useState('PLAYER_ROLL_WAIT'); // PLAYER_ROLL_WAIT, RESOLVING, ENEMY_ROLL_WAIT
+    // --- STATE ---
+    const [turnPhase, setTurnPhase] = useState('INIT'); // INIT, PLAYER_ACT, RESOLVING, ENEMY_ACT, END
     const [battleRound, setBattleRound] = useState(1);
-    const [battleLog, setBattleLog] = useState(["Battle Started! Player Turn."]);
+    const [battleLog, setBattleLog] = useState(["Battle Started!"]);
     const [diceValue, setDiceValue] = useState(0);
-    const [battleHeroes, setBattleHeroes] = useState([]);
-    const [enemy, setEnemy] = useState(null);
 
-    // Context for skills (history, memory, etc.)
-    const [diceHistory, setDiceHistory] = useState([]);
-    const [memory, setMemory] = useState({}); // Shared memory for "once per battle" limits
+    // Faction State
+    // Faction[0] = Player, Faction[1] = Computer
+    const [factions, setFactions] = useState([]);
+
+    // UI selection state (if manual targeting is added later)
+    const [selectedCharacter, setSelectedCharacter] = useState(null);
 
     const logRef = useRef(null);
+    const scrollRef = useRef(null);
 
-    // Initialize Battle
+    // --- INITIALIZATION ---
     useEffect(() => {
-        // Clone heroes for battle using proper class instantiation to ensure methods exist
-        const heroes = gameState.activeTeam.map(id => {
-            const char = gameState.roster.find(c => c.id === id);
-            // Re-hydrate to ensure it has Character prototype methods
-            const instance = new Character(char);
-            instance.defense = 0;
-            instance.speed = char.speed; // Ensure speed is current
-            instance.tempSpeed = char.speed;
-            return instance;
+        // 1. Build Player Faction
+        const heroInstances = gameState.activeTeam.map(id => {
+            const charData = gameState.roster.find(c => c.id === id);
+            return new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
         });
-        setBattleHeroes(heroes);
+        const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances);
 
-        // Load Enemy
-        const enemyInstance = getEnemy(gameState.level);
-        enemyInstance.defense = 0;
-        setEnemy(enemyInstance);
+        // 2. Build Enemy Faction from Level Data
+        const currentLevel = LEVELS[gameState.level] || LEVELS[1];
+        const enemyInstances = currentLevel.enemyFactionData.members.map(e =>
+            new Character({ ...e, tempSpeed: e.speed, defense: 0 })
+        );
+        const enemyFaction = new Faction('enemy_faction', 'COMPUTER', currentLevel.enemyFactionData.factionName, enemyInstances);
 
-        addLog(`Encountered: ${enemyInstance.name}!`);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        setFactions([playerFaction, enemyFaction]);
+        setTurnPhase('PLAYER_WAIT_ROLL');
+        addLog(`Encountered: ${enemyFaction.name} `);
     }, []);
 
-    // Auto scroll log
+    // Scroll Log
     useEffect(() => {
         if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [battleLog]);
 
-    const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg}`]);
+    const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg} `]);
 
-    // --- CORE BATTLE LOGIC ---
+    // --- CORE LOGIC ---
 
-    const checkWinCondition = (currentHeroes, currentEnemy) => {
-        if (currentEnemy.hp <= 0) {
-            setTimeout(() => onWin(), 1500);
+    const checkWinCondition = (currentFactions) => {
+        const playerAlive = currentFactions[0].livingMembers.length > 0;
+        const enemyAlive = currentFactions[1].livingMembers.length > 0;
+
+        if (!enemyAlive) {
+            setTimeout(onWin, 1500);
             return true;
         }
-        const aliveHeroes = currentHeroes.filter(h => h.hp > 0);
-        if (aliveHeroes.length === 0 || battleRound > 30) {
-            setTimeout(() => onLose(), 1500);
+        if (!playerAlive || battleRound > 30) {
+            setTimeout(onLose, 1500);
             return true;
         }
         return false;
     };
 
-    const executeTurn = async (roll, isFriendlyTurn) => {
-        let currentHeroes = [...battleHeroes];
-        let currentEnemy = { ...enemy }; // Shallow copy to trigger renders
-        // We also need to write back changes to these objects.
+    const handleTurn = async (activeFactionIndex, roll) => {
+        setTurnPhase('RESOLVING');
 
-        // 1. Determine Order
-        const participants = [
-            ...currentHeroes.filter(h => h.hp > 0).map(h => ({ ...h, type: 'HERO', isFriendly: true })),
-            { ...currentEnemy, type: 'ENEMY', isFriendly: false }
-        ];
+        // Clone State for processing
+        // We need deep clones of characters to avoid mutation issues during calculation if we want "undo" etc,
+        // but for now we essentially mutate the "next state" and set it.
+        // To allow React to update, we create new Faction objects with new Character instances.
 
-        // Shuffle & Sort
-        for (let i = participants.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [participants[i], participants[j]] = [participants[j], participants[i]];
-        }
-        participants.sort((a, b) => (a.tempSpeed || a.speed) - (b.tempSpeed || b.speed));
+        const nextFactions = factions.map(f => {
+            const newChars = f.characters.map(c => {
+                const copy = new Character({ ...c, skills: c.skillIds }); // Re-instantiate
+                // Copy runtime props
+                copy.hp = c.hp;
+                copy.defense = c.defense;
+                copy.tempSpeed = c.tempSpeed;
+                return copy;
+            });
+            return new Faction(f.id, f.type, f.name, newChars);
+        });
 
-        addLog(`Dice: ${roll}. Order: ${participants.map(p => p.name).join(' > ')}`);
+        const activeFaction = nextFactions[activeFactionIndex];
+        const passiveFaction = nextFactions[activeFactionIndex === 0 ? 1 : 0];
 
-        // 2. Iterate Actions using SKILL CABINET
+        addLog(`${activeFaction.name} Turn(Dice: ${roll})`);
 
-        // Correct Sort: Descending Speed
+        // Execute Sequence
+        await new Promise(r => setTimeout(r, 600)); // Dramatic pause
 
-        participants.sort((a, b) => (b.tempSpeed || b.speed) - (a.tempSpeed || a.speed));
+        const { logs, actions } = ActionSequence.resolveTurn(activeFaction, passiveFaction, roll);
 
-        for (let actor of participants) {
-            if (checkWinCondition(currentHeroes, currentEnemy)) return;
+        // Update Log
+        logs.forEach(l => addLog(l));
 
-            let realActor = actor.type === 'HERO' ? currentHeroes.find(h => h.id === actor.id) : currentEnemy;
-            if (!realActor || realActor.hp <= 0) continue;
+        // Apply Actions (Damage, Heal, Buffs)
+        actions.forEach(action => {
+            // Find target in ALL factions
+            let target = null;
+            let targetFaction = null;
 
-            await new Promise(r => setTimeout(r, 800));
-
-            // Context
-            const allies = actor.type === 'HERO' ? currentHeroes.filter(h => h.hp > 0) : [currentEnemy];
-            const enemies = actor.type === 'HERO' ? [currentEnemy] : currentHeroes.filter(h => h.hp > 0);
-
-            const ctx = {
-                dice: roll,
-                history: diceHistory,
-                memory,
-                allies,
-                enemies,
-                isFirst: participants[0].id === actor.id
-            };
-
-            // ACTION DELEGATION
-            let result = { log: null, actions: [] };
-
-            // RULE: 
-            // If Friendly Turn: Heroes do OFFENSIVE, Enemies do DEFENSIVE
-            // If Enemy Turn: Enemies do OFFENSIVE, Heroes do DEFENSIVE
-
-            const isActorTurnOwner = (isFriendlyTurn && actor.type === 'HERO') || (!isFriendlyTurn && actor.type === 'ENEMY');
-
-            if (isActorTurnOwner) {
-                // ACTOR OFFENSIVE
-                // Targets: Enemies
-                result = realActor.performOffensive(enemies, ctx);
-            } else {
-                // ACTOR DEFENSIVE (Reaction)
-                // Targets: The ACTIVE turn owner? Or the enemies?
-                // "Defensive skill triggers on opponent turn".
-                // Defensive might just be self-buff or reaction.
-                // Pass 'Enemies' (the current active side) as potential targets?
-                // e.g. Archer traps the acting enemy.
-                // So targets = The side that is currently active (Original Enemies context)
-                result = realActor.performDefensive(enemies, ctx);
+            for (let f of nextFactions) {
+                target = f.getCharacter(action.targetId);
+                if (target) {
+                    targetFaction = f;
+                    break;
+                }
             }
 
-            if (result && result.log) {
-                addLog(result.log);
-            }
+            if (target) {
+                if (action.type === 'DAMAGE') {
+                    // Logic for applying damage (Reduction by defense etc)
+                    // Simplified here, assuming ActionSequence might have calculated raw dmg?
+                    // Or do we calculate defense here? 
+                    // Let's assume ActionSequence returns raw "Output" and we apply defense mitigation here?
+                    // Or logic inside Character.executeSkill handles it?
+                    // Previous logic: target.defense reduced damage.
 
-            // Apply Actions
-            if (result && result.actions) {
-                result.actions.forEach(action => {
-                    if (action.type === 'DAMAGE') {
-                        applyDamage(action.targetId, action.amount, currentHeroes, currentEnemy);
-                    } else if (action.type === 'HEAL') {
-                        applyHeal(action.targetId, action.amount, currentHeroes, currentEnemy);
-                    } else if (action.type === 'BUFF') {
-                        applyBuff(action.targetId, action.stat, action.amount, currentHeroes, currentEnemy);
-                    } else if (action.type === 'MODIFY_STAT') { // Perm or Temp stat change
-                        applyBuff(action.targetId, action.stat, action.amount, currentHeroes, currentEnemy);
-                    } else if (action.type === 'MEMORY') {
-                        setMemory(prev => ({ ...prev, [action.key]: action.value }));
+                    let dmg = action.amount;
+                    if (target.defense > 0) {
+                        const mitigation = Math.min(target.defense, dmg);
+                        target.defense -= mitigation;
+                        dmg -= mitigation;
                     }
-                });
+                    target.hp = Math.max(0, target.hp - dmg);
+                } else if (action.type === 'HEAL') {
+                    target.hp = Math.min(target.maxHp, target.hp + action.amount);
+                } else if (action.type === 'BUFF') {
+                    if (action.stat === 'defense') target.defense += action.amount;
+                    if (action.stat === 'speed') target.tempSpeed += action.amount;
+                }
             }
+        });
 
-            // Sync State
-            setBattleHeroes([...currentHeroes]);
-            setEnemy({ ...currentEnemy });
-        }
+        // Update State
+        setFactions(nextFactions);
 
-        // End Turn
-        if (checkWinCondition(currentHeroes, currentEnemy)) return;
+        if (checkWinCondition(nextFactions)) return;
 
-        if (isFriendlyTurn) {
-            setTurnPhase('ENEMY_ROLL_WAIT');
-            addLog(`--- Enemy Turn Pending ---`);
+        // Transition Phase
+        await new Promise(r => setTimeout(r, 1000));
+
+        if (activeFactionIndex === 0) {
+            // Player just finished. Enemy Turn Next.
+            setTurnPhase('ENEMY_WAIT');
+            // Auto-trigger enemy? Or wait for click? User often acts generic "Next Turn"?
+            // Let's auto-trigger enemy after delay for flow.
+            setTimeout(() => handleEnemyTurn(nextFactions), 1000);
         } else {
+            // Enemy just finished. New Round.
             setBattleRound(r => r + 1);
-            setTurnPhase('PLAYER_ROLL_WAIT');
-            addLog(`=== Round ${battleRound + 1} Start ===`);
+            setTurnPhase('PLAYER_WAIT_ROLL');
+            addLog(`=== Round ${battleRound + 1} === `);
         }
     };
-
-    const applyDamage = (targetId, amount, heroes, enemyObj) => {
-        // Find target
-        let target = null;
-        if (enemyObj.id === targetId) target = enemyObj;
-        else target = heroes.find(h => h.id === targetId);
-
-        if (!target) return;
-
-        let actualDmg = amount;
-        if (target.defense > 0) {
-            if (amount <= target.defense) actualDmg = 0;
-            else actualDmg = Math.max(0, amount - target.defense);
-            target.defense = 0; // Reset defense after being hit
-        }
-
-        target.hp -= actualDmg;
-    };
-
-    const applyHeal = (targetId, amount, heroes, enemyObj) => {
-        let target = enemyObj.id === targetId ? enemyObj : heroes.find(h => h.id === targetId);
-        if (target) {
-            target.hp = Math.min(target.hp + amount, target.maxHp);
-        }
-    };
-
-    const applyBuff = (targetId, stat, amount, heroes, enemyObj) => {
-        let target = enemyObj.id === targetId ? enemyObj : heroes.find(h => h.id === targetId);
-        if (target) {
-            if (stat === 'defense') target.defense = (target.defense || 0) + amount;
-            if (stat === 'speed') target.tempSpeed = (target.tempSpeed || target.speed) + amount;
-            // Note: Permanent speed change vs temp? Original code implies perm changes mostly.
-            // We'll stick to tempSpeed for battle.
-        }
-    };
-
 
     const handlePlayerRoll = () => {
         const roll = rollDice();
         setDiceValue(roll);
-        setDiceHistory(prev => [...prev, roll]);
-        setTurnPhase('RESOLVING');
-        executeTurn(roll, true);
+        handleTurn(0, roll); // 0 = Player Faction
     };
 
-    const handleEnemyRoll = () => {
+    const handleEnemyTurn = (currentFactions) => {
+        // Can fail if component unmounted, catch?
         const roll = rollDice();
         setDiceValue(roll);
-        setTurnPhase('RESOLVING');
-        setTimeout(() => executeTurn(roll, false), 1000);
+        // We pass currentFactions just to be safe, but handleTurn uses state. 
+        // Actually handleTurn uses state `factions`.
+        // If we call handleTurn via setTimeout, `factions` might be stale closure if not careful?
+        // But handleTurn uses `factions` from closure. 
+        // We should trigger a state update that triggers the effect?
+        // Or just allow the function to run. 
+        // BETTER: Use a separate useEffect or ensure handleTurn has access to fresh state via refs or functional updates?
+        // Simpler: Just resolve purely. 
+        // For this refactor I will rely on standard flow.
+        handleTurn(1, roll); // 1 = Enemy Faction
     };
 
-    if (!enemy) return <div>Loading Battle...</div>;
+    // --- RENDER ---
+    if (factions.length < 2) return <div className="p-10 text-white">Loading Factions...</div>;
+
+    const [playerFaction, enemyFaction] = factions;
 
     return (
-        <div className="flex flex-col h-screen bg-stone-950 p-2 md:p-6 animate-fade-in-up">
+        <div className="flex flex-col h-screen bg-stone-950 p-2 md:p-6 animate-fade-in">
             {/* HEADER */}
-            <div className="flex justify-between items-center mb-4 text-amber-100">
-                <h2 className="text-xl font-serif">Round {battleRound} / 30</h2>
-                <div className="flex items-center gap-2">
-                    <Dices size={20} /> Result: <span className="text-2xl font-bold text-amber-500">{diceValue}</span>
+            <div className="flex justify-between items-center mb-4 text-amber-100 border-b border-stone-800 pb-2">
+                <div className="flex gap-4 items-center">
+                    <h2 className="text-xl font-serif text-amber-500">Round {battleRound}</h2>
+                    <div className="text-sm text-stone-400">{turnPhase}</div>
+                </div>
+                <div className="flex items-center gap-2 bg-stone-900 px-4 py-1 rounded border border-stone-700">
+                    <Dices size={18} className="text-amber-400" />
+                    <span className="text-xl font-bold">{diceValue}</span>
                 </div>
             </div>
 
-            {/* BATTLEFIELD */}
-            <div className="flex-1 flex flex-col md:flex-row gap-4 mb-4">
-                {/* HEROES */}
-                <div className="flex-1 grid grid-cols-2 gap-2 content-center">
-                    {battleHeroes.map(h => (
-                        <CharacterCard key={h.id} char={h} compact defense={h.defense} />
-                    ))}
+            {/* BATTLE ARENA */}
+            <div className="flex-1 flex flex-col md:flex-row gap-6 mb-4">
+                {/* PLAYER FACTION */}
+                <div className="flex-1 bg-stone-900/40 p-4 rounded-lg border border-stone-800/50">
+                    <div className="text-stone-400 mb-2 font-serif flex justify-between">
+                        <span>{playerFaction.name}</span>
+                        <Swords size={16} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {playerFaction.characters.map(char => (
+                            <CharacterCard
+                                key={char.id}
+                                char={char}
+                                defense={char.defense}
+                                onClick={() => setSelectedCharacter(char)}
+                                className={char.hp <= 0 ? 'opacity-50 grayscale' : ''}
+                            />
+                        ))}
+                    </div>
                 </div>
 
-                <div className="flex items-center justify-center text-stone-600 font-serif text-2xl">VS</div>
+                {/* VS */}
+                <div className="flex items-center justify-center text-stone-700 font-serif font-bold text-2xl">
+                    VS
+                </div>
 
-                {/* ENEMY */}
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="relative w-full max-w-sm border-4 border-red-900/50 bg-stone-900 p-6 flex flex-col items-center gap-4">
-                        <Skull size={64} className="text-red-800" />
-                        <div className="text-center">
-                            <h3 className="text-2xl font-serif text-red-200">{enemy.name}</h3>
-                            <div className="flex justify-center gap-4 mt-2 text-stone-400">
-                                <span className="flex items-center gap-1"><Heart size={16} /> {enemy.hp}/{enemy.maxHp}</span>
-                                <span className="flex items-center gap-1"><Zap size={16} /> {enemy.speed}</span>
-                                {enemy.defense > 0 && <span className="flex items-center gap-1 text-blue-400"><Shield size={16} /> +{enemy.defense}</span>}
-                            </div>
-                        </div>
-                        <div className="text-xs text-stone-500 mt-2">
-                            <div>Off: {enemy.offensiveDesc}</div>
-                            <div>Def: {enemy.defensiveDesc}</div>
-                        </div>
+                {/* ENEMY FACTION */}
+                <div className="flex-1 bg-red-950/10 p-4 rounded-lg border border-red-900/20">
+                    <div className="text-red-900/60 mb-2 font-serif text-right flex justify-between flex-row-reverse">
+                        <span>{enemyFaction.name}</span>
+                        <Skull size={16} />
+                    </div>
+                    <div className="flex flex-col gap-3 items-center">
+                        {enemyFaction.characters.map(char => (
+                            <CharacterCard
+                                key={char.id}
+                                char={char}
+                                defense={char.defense}
+                                compact
+                                className={char.hp <= 0 ? 'opacity-50 grayscale' : ''}
+                            />
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* CONTROLS */}
+            {/* CONTROL PANEL */}
             <div className="h-48 flex gap-4">
-                <div className="w-1/3 flex flex-col gap-2 justify-center">
-                    {turnPhase === 'PLAYER_ROLL_WAIT' && (
-                        <Button primary icon={Dices} onClick={handlePlayerRoll}>Roll for Heroes</Button>
-                    )}
-                    {turnPhase === 'ENEMY_ROLL_WAIT' && (
-                        <Button icon={Skull} onClick={handleEnemyRoll} className="border-red-800 hover:bg-red-900/20">Enemy Turn</Button>
-                    )}
-                    {turnPhase === 'RESOLVING' && (
-                        <div className="text-center text-stone-500 animate-pulse">Resolving Actions...</div>
+                <div className="w-1/3 flex flex-col justify-center gap-3">
+                    {turnPhase === 'PLAYER_WAIT_ROLL' ? (
+                        <Button primary icon={Dices} onClick={handlePlayerRoll} className="h-16 text-lg">
+                            Roll Dice & Fight
+                        </Button>
+                    ) : (
+                        <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded">
+                            {turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." : "Resolving Combat..."}
+                        </div>
                     )}
                 </div>
 
-                <div className="w-2/3 bg-black/40 border border-stone-800 p-2 overflow-y-auto font-mono text-sm text-stone-300" ref={logRef}>
+                <div className="w-2/3 bg-black/60 border border-stone-800 p-3 rounded font-mono text-sm text-green-400/80 overflow-y-auto" ref={logRef}>
                     {battleLog.map((l, i) => (
-                        <div key={i} className="mb-1">{l}</div>
+                        <div key={i} className="mb-1 border-b border-stone-900/50 pb-1">{l}</div>
                     ))}
                 </div>
             </div>

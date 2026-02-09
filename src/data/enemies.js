@@ -1,4 +1,3 @@
-
 import { Character } from '../models/Character';
 
 const ENEMY_DATA = {
@@ -8,8 +7,7 @@ const ENEMY_DATA = {
         hp: 16,
         maxHp: 16,
         speed: 8,
-        offensiveSkillId: 'rebel_offensive',
-        defensiveSkillId: 'rebel_defensive'
+        skills: ['rebel_offensive', 'rebel_defensive']
     },
     2: {
         id: 'dragon',
@@ -17,8 +15,7 @@ const ENEMY_DATA = {
         hp: 28,
         maxHp: 28,
         speed: 5,
-        offensiveSkillId: 'dragon_offensive',
-        defensiveSkillId: 'dragon_defensive'
+        skills: ['dragon_offensive', 'dragon_defensive']
     }
 };
 

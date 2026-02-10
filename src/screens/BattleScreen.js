@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dices, Skull, Zap, Heart, Shield, Swords } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { CharacterCard } from '../components/ui/CharacterCard';
-import { Character } from '../models/Character';
-import { Faction } from '../models/Faction';
+import { ActionSequence } from '../systems/ActionSequence';
 import { Combat } from '../systems/Combat';
 import { LEVELS } from '../data/levels';
+import { CHARACTERS } from '../data/characters';
+import { Faction } from '../models/Faction';
+import { Character } from '../models/Character';
 
 const rollDice = (sides = 6) => Math.floor(Math.random() * sides) + 1;
 
@@ -31,12 +33,14 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     const scrollRef = useRef(null);
 
     // --- INITIALIZATION ---
+    // --- INITIALIZATION ---
     useEffect(() => {
         // 1. Build Player Faction
         const heroInstances = gameState.activeTeam.map(id => {
             const charData = gameState.roster.find(c => c.id === id);
             return new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
         });
+        // Use 'PLAYER' type to distinguish user control
         const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances);
 
         // 2. Build Enemy Faction from Level Data
@@ -57,8 +61,6 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     }, [battleLog]);
 
     const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg} `]);
-
-    // --- CORE LOGIC ---
 
     // --- CORE LOGIC ---
 

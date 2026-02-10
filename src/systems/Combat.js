@@ -50,4 +50,49 @@ export class Combat {
             logs
         };
     }
+
+    /**
+     * Centralized Context Creation
+     * ensures consistent availability of combat state across all systems (Skills, AI, UI).
+     */
+    static createContext(allFactions, activeFactionId, currentActor, diceValue, extraContext = {}) {
+        /*
+         * Context Schema:
+         * {
+         *   dice: number,
+         *   activeFaction: Faction,
+         *   user: Character,
+         *   allies: Character[],
+         *   enemies: Character[],
+         *   isFirst: boolean,
+         *   allFactions: Faction[],
+         *   ...extraContext (history, memory, etc)
+         * }
+         */
+
+        const activeFaction = allFactions.find(f => f.id === activeFactionId);
+
+        let allActors = [];
+        allFactions.forEach(f => {
+            allActors.push(...f.livingMembers);
+        });
+
+        // Determine First Actor (based on tempSpeed) - Re-calculation or pass it in? 
+        // ActionSequence sorts them. If we create context *inside* loop, we know who is first.
+        // But here we might just need to know if *currentActor* is first.
+        // Let's assume sorting happens outside or we sort here to check. 
+        // For efficiency, maybe 'isFirst' should be passed in if known, or calculated.
+
+        // Let's keep it simple: filter allies/enemies based on actor.
+
+        return {
+            dice: diceValue,
+            activeFaction: activeFaction,
+            user: currentActor,
+            allies: allActors.filter(c => c.faction.id === currentActor.faction.id),
+            enemies: allActors.filter(c => c.faction.id !== currentActor.faction.id),
+            allFactions: allFactions,
+            ...extraContext
+        };
+    }
 }

@@ -3,20 +3,14 @@ import React, { useState } from 'react';
 import { StartScreen } from './screens/StartScreen';
 import { CastleScreen } from './screens/CastleScreen';
 import { BattleScreen } from './screens/BattleScreen';
-import { getHeroes } from './data/heroes';
+import { Player } from './systems/Player';
 
 export default function App() {
     const [scenario, setScenario] = useState(0);
     const [gameState, setGameState] = useState(null);
 
     const handleNewGame = () => {
-        const newGameData = {
-            level: 1,
-            gold: 100,
-            roster: getHeroes(), // Initialize with Class Instances
-            activeTeam: ['merlin', 'arthur', 'archer', 'architect'],
-            castleFacilities: { mainHall: { level: 1 }, expeditionOffice: { level: 1 } }
-        };
+        const newGameData = Player.createInitialState();
         setGameState(newGameData);
         setScenario(1);
     };
@@ -27,12 +21,16 @@ export default function App() {
 
     const handleWinBattle = () => {
         alert("Victory! Returning to Castle...");
-        setGameState(prev => ({ ...prev, level: prev.level + 1 }));
+        // Use Player system to calculate new state (rewards, level up)
+        setGameState(prev => Player.processVictory(prev));
         setScenario(1);
     };
 
     const handleLoseBattle = () => {
         alert("Defeat... The expedition is lost.");
+        // Use Player system to handle defeat (e.g. cleanup or just return state)
+        // For now, Player.processDefeat just returns state, but good to have the hook.
+        setGameState(prev => Player.processDefeat(prev));
         setScenario(0); // Reset to start
     };
 

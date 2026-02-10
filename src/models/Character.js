@@ -44,14 +44,19 @@ export class Character {
         if (this.hp <= 0) return 0;
 
         let actualDamage = amount;
-        if (this.defense > 0) {
-            const mitigation = Math.min(this.defense, actualDamage);
-            this.defense -= mitigation;
-            actualDamage -= mitigation;
+
+        // Mitigation Mechanism
+        // Check if damage is less than (or equal to) defense.
+        // If yes, damage is muted (0). Otherwise applies fully.
+        // Defense is always reset to 0.
+        if (this.defense >= actualDamage) {
+            actualDamage = 0;
         }
 
+        this.defense = 0; // Reset defense after any hit (blocked or taken)
+
         this.hp = Math.max(0, this.hp - actualDamage);
-        return actualDamage; // Return actual damage taken for logging if needed
+        return actualDamage; // Return actual damage taken for logging
     }
 
     heal(amount) {

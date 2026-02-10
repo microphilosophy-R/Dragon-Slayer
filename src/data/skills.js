@@ -8,10 +8,9 @@ export const SKILL_CABINET = {
         type: "OFFENSIVE",
         description: "4 DMG if dice is 6.",
         targetingMode: 'MANUAL',
+        maxTargets: 1,
         checkConditions: (context) => true,
-        getTargets: (context) => {
-            return context.enemies.filter(e => e.isAlive());
-        },
+        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
         execute: (targets, context) => {
             const { dice } = context;
             const target = targets[0];
@@ -32,15 +31,9 @@ export const SKILL_CABINET = {
         checkConditions: (context) => context.dice === 6,
         getTargets: (context) => [context.user],
         execute: (targets, context) => {
-            // Logic for mitigation should ideally prevent damage *before* it happens.
-            // But 'react' happens when targeted? 
-            // For now, let's say it adds a huge defense buffer or similar.
-            // Or maybe user wants "Reaction" to interrupt?
-            // "The determinator will decide... execute pure executable actions."
-            // If this is called, it means "Defensive Phase". 
-            // Maybe it adds defense for the rest of the turn?
+            // Adds massive defense to trigger the Character.takeDamage mitigation (defense >= damage => 0 damage)
             const target = targets[0];
-            target.defense += 99; // Temporary immunity?
+            target.defense += 999;
             return { log: "Merlin foresees the attack! (Mitigation active)" };
         }
     }),
@@ -68,17 +61,16 @@ export const SKILL_CABINET = {
         name: "Holy Aura",
         type: "DEFENSIVE",
         description: "Heal a random ally if dice matches history.",
+        maxTargets: 1,
         checkConditions: (context) => {
             const { dice, history } = context;
             const occurrences = (history || []).filter(r => r === dice).length;
-            // The history includes the current roll? Usually passed history is *past* rolls.
-            // Check context creation.
-            return occurrences > 0; // If seen before
+            return occurrences > 0;
         },
         getTargets: (context) => context.allies.filter(a => a.isAlive()),
+        // Uses default random selection strategy
         execute: (targets, context) => {
-            // Random ally
-            const target = targets[Math.floor(Math.random() * targets.length)];
+            const target = targets[0];
             const healed = target.heal(999);
             return { log: `Arthur's aura shines! Healed ${target.name} for ${healed}.` };
         }
@@ -90,6 +82,7 @@ export const SKILL_CABINET = {
         name: "Quick Shot",
         type: "OFFENSIVE",
         description: "1 DMG. If first to act, -1 Speed.",
+        maxTargets: 1,
         checkConditions: (context) => true,
         getTargets: (context) => context.enemies.filter(e => e.isAlive()),
         execute: (targets, context) => {
@@ -125,10 +118,11 @@ export const SKILL_CABINET = {
         name: "Fortify",
         type: "OFFENSIVE",
         description: "Give an ally +2 Defense.",
+        maxTargets: 1,
         checkConditions: (context) => true,
         getTargets: (context) => context.allies.filter(a => a.isAlive()),
         execute: (targets, context) => {
-            const target = targets[Math.floor(Math.random() * targets.length)];
+            const target = targets[0];
             target.modifyStat('defense', 2);
             return { log: `Architect fortifies ${target.name}. +2 Defense.` };
         }
@@ -160,22 +154,20 @@ export const SKILL_CABINET = {
         name: "Multi-Attack",
         type: "OFFENSIVE",
         description: "1 DMG. If dice <= 3, 2 DMG to another.",
+        // Dynamic max targets: 2 if dice <= 3, else 1
+        maxTargets: (context) => context.dice <= 3 ? 2 : 1,
         checkConditions: (context) => true,
         getTargets: (context) => context.enemies.filter(e => e.isAlive()),
         execute: (targets, context) => {
-            const { dice } = context;
-            // Target 1
-            const t1 = targets[Math.floor(Math.random() * targets.length)];
+            // Targets have already been selected by Targeting phase (maxTargets applied)
+            const t1 = targets[0];
             t1.takeDamage(1);
             let log = `Rebel attacks ${t1.name} (1 DMG).`;
 
-            if (dice <= 3 && targets.length > 1) {
-                const others = targets.filter(t => t.id !== t1.id);
-                if (others.length > 0) {
-                    const t2 = others[Math.floor(Math.random() * others.length)];
-                    t2.takeDamage(2);
-                    log += ` And frenzies on ${t2.name} (2 DMG)!`;
-                }
+            if (targets.length > 1) {
+                const t2 = targets[1];
+                t2.takeDamage(2);
+                log += ` And frenzies on ${t2.name} (2 DMG)!`;
             }
             return { log };
         }
@@ -202,17 +194,19 @@ export const SKILL_CABINET = {
         name: "Dragon Breath",
         type: "OFFENSIVE",
         description: "2 DMG. If dice 6, 2 DMG to ALL.",
+        // Dynamic max targets: All (99) if dice 6, else 1
+        maxTargets: (context) => context.dice === 6 ? 99 : 1,
         checkConditions: (context) => true,
         getTargets: (context) => context.enemies.filter(e => e.isAlive()),
         execute: (targets, context) => {
             const { dice } = context;
+
+            targets.forEach(t => t.takeDamage(2));
+
             if (dice === 6) {
-                targets.forEach(t => t.takeDamage(2));
-                return { log: `Dragon breathes fire! 2 DMG to ALL!` };
+                return { log: `Dragon breathes fire! 2 DMG to ALL (${targets.length})!` };
             }
-            const t1 = targets[Math.floor(Math.random() * targets.length)];
-            t1.takeDamage(2);
-            return { log: `Dragon bites ${t1.name}. 2 DMG.` };
+            return { log: `Dragon bites ${targets[0].name}. 2 DMG.` };
         }
     }),
     "dragon_defensive": new Skill({

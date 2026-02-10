@@ -1,3 +1,5 @@
+import { Combat } from './Combat';
+
 export class ActionSequence {
     /**
      * Executes a single turn where one faction is "Active".
@@ -26,16 +28,13 @@ export class ActionSequence {
             const isFirst = allActors[0].id === actor.id;
 
             // Context construction
-            const context = {
-                dice: diceValue,
-                activeFaction: activeFaction, // Vital for determining Mode
-                user: actor,
-                allies: allActors.filter(c => c.faction.id === actor.faction.id),
-                enemies: allActors.filter(c => c.faction.id !== actor.faction.id),
-                isFirst,
-                allFactions, // Pass full state if needed
-                ...extraContext
-            };
+            const context = Combat.createContext(
+                allFactions,
+                activeFactionId,
+                actor,
+                diceValue,
+                { isFirst, ...extraContext }
+            );
 
             // Delegate to Actor
             // Actor handles "Mode" determination (Offensive/Defensive) internally

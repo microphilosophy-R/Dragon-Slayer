@@ -111,6 +111,12 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         // NOTE: We ignore activeFactionIndexProp and always assume Player Start -> Enemy Follows
         // because the UI flow drives "Roll -> Round Execution".
 
+        // --- ROUND START ---
+        // We import dynamically to avoid circular deps if any, or just standard import. 
+        // Better to verify if 'bus' is available. 
+        const { bus } = await import('../systems/EventBus');
+        bus.emit('Round:Start', { round: battleRound });
+
         setTurnPhase('RESOLVING');
 
         // 1. Snapshot State (Clone) to ensure proper mutation tracking
@@ -161,6 +167,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         if (checkWinCondition(currentFactions)) return;
 
         // --- END ROUND ---
+        bus.emit('Round:End', { round: battleRound });
         setBattleRound(r => r + 1);
         setTurnPhase('PLAYER_WAIT_ROLL');
         addLog(`=== Round ${battleRound + 1} === `);

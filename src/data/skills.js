@@ -2,206 +2,157 @@ import { Skill } from '../models/Skill';
 
 export const SKILL_CABINET = {
     // --- MERLIN ---
-    "merlin_offensive": new Skill({
+    "merlin_offensive": Skill.generate({
         id: "merlin_offensive",
         name: "Fireball",
         type: "OFFENSIVE",
         description: "4 DMG if dice is 6.",
-        targetingMode: 'MANUAL',
-        maxTargets: 1,
-        checkConditions: (context) => true,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
-        execute: (targets, context) => {
-            const { dice } = context;
-            const target = targets[0];
-            if (!target) return { log: "No target found." };
-
-            if (dice === 6) {
-                target.takeDamage(4);
-                return { log: `Merlin casts Fireball! 4 DMG to ${target.name}.` };
-            }
-            return { log: `Merlin charges magic... (Dice ${dice})` };
-        }
+        targeting: { mode: 'MANUAL', max: 1, scope: 'ENEMIES' },
+        logic: { dice: { exact: 6 } },
+        execution: { damage: { amount: 4 } }
     }),
-    "merlin_defensive": new Skill({
+
+    // Merlin Defensive: Complex mitigation logic (defense += 999).
+    // Factory implementation doesn't support "buff amount" easily yet alongside "mitigate all".
+    // Keeping manual but using standard methods.
+    // reworked with simpler one: if the dice is 3 or less, 
+    // Merlin Defensive: Reroll/Rewind Logic
+    "merlin_defensive": Skill.generate({
         id: "merlin_defensive",
         name: "Clairvoyance",
         type: "DEFENSIVE",
-        description: "If dice is 6, mitigate all damage.",
-        checkConditions: (context) => context.dice === 6,
-        getTargets: (context) => [context.user],
-        execute: (targets, context) => {
-            // Adds massive defense to trigger the Character.takeDamage mitigation (defense >= damage => 0 damage)
-            const target = targets[0];
-            target.defense += 999;
-            return { log: "Merlin foresees the attack! (Mitigation active)" };
-        }
+        description: "Return to the previous turn (Reroll). Once per battle.",
+        targeting: { scope: 'SELF' },
+        logic: { once: true },
+        execution: { reroll: true }
     }),
 
     // --- ARTHUR ---
-    "arthur_offensive": new Skill({
+    "arthur_offensive": Skill.generate({
         id: "arthur_offensive",
         name: "Righteous Strike",
         type: "OFFENSIVE",
         description: "1 DMG if dice >= 4.",
-        checkConditions: (context) => true,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
-        execute: (targets, context) => {
-            const { dice } = context;
-            const target = targets[0];
-            if (dice >= 4) {
-                target.takeDamage(1);
-                return { log: `Arthur strikes with honor! 1 DMG to ${target.name}.` };
-            }
-            return { log: `Arthur misses.` };
-        }
+        targeting: { scope: 'ENEMIES' },
+        logic: { dice: { min: 4 } },
+        execution: { damage: { amount: 1 } }
     }),
-    "arthur_defensive": new Skill({
+
+    "arthur_defensive": Skill.generate({
         id: "arthur_defensive",
         name: "Holy Aura",
         type: "DEFENSIVE",
-        description: "Heal a random ally if dice matches history.",
-        maxTargets: 1,
-        checkConditions: (context) => {
-            const { dice, history } = context;
-            const occurrences = (history || []).filter(r => r === dice).length;
-            return occurrences > 0;
-        },
-        getTargets: (context) => context.allies.filter(a => a.isAlive()),
-        // Uses default random selection strategy
-        execute: (targets, context) => {
-            const target = targets[0];
-            const healed = target.heal(999);
-            return { log: `Arthur's aura shines! Healed ${target.name} for ${healed}.` };
-        }
+        description: "Revive a fallen ally if dice matches history (Once per battle).",
+        targeting: { scope: 'DEAD_ALLIES', max: 1 },
+        logic: { historyMatch: true, once: true },
     }),
 
     // --- ARCHER ---
-    "archer_offensive": new Skill({
+    "archer_offensive": Skill.generate({
         id: "archer_offensive",
         name: "Quick Shot",
         type: "OFFENSIVE",
-        description: "1 DMG. If first to act, -1 Speed.",
-        maxTargets: 1,
-        checkConditions: (context) => true,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
-        execute: (targets, context) => {
-            const { isFirst, user } = context;
-            const target = targets[0];
-            target.takeDamage(1);
-            let log = `Archer fires! 1 DMG to ${target.name}.`;
-
-            if (isFirst) {
-                user.modifyStat('speed', -1);
-                log += ` (Speed -1)`;
-            }
-            return { log };
+        description: "1 DMG. Only hits if first to act. (-1 Speed).",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { onlyFirst: true }, // New Logic Check
+        execution: {
+            damage: { amount: 1 },
+            meta: { speedDebuffIfFirst: true }
         }
     }),
-    "archer_defensive": new Skill({
+
+    "archer_defensive": Skill.generate({
         id: "archer_defensive",
         name: "Trap Setting",
         type: "DEFENSIVE",
         description: "Deal 1 DMG to enemy if dice is Even.",
-        checkConditions: (context) => context.dice % 2 === 0,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
-        execute: (targets, context) => {
-            const target = targets[0];
-            target.takeDamage(1);
-            return { log: `Archer's trap snaps! 1 DMG to ${target.name}.` };
-        }
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { parity: 'even' } },
+        execution: { damage: { amount: 1 } }
     }),
 
     // --- ARCHITECT ---
-    "architect_offensive": new Skill({
+    "architect_offensive": Skill.generate({
         id: "architect_offensive",
         name: "Fortify",
         type: "OFFENSIVE",
         description: "Give an ally +2 Defense.",
-        maxTargets: 1,
-        checkConditions: (context) => true,
-        getTargets: (context) => context.allies.filter(a => a.isAlive()),
-        execute: (targets, context) => {
-            const target = targets[0];
-            target.modifyStat('defense', 2);
-            return { log: `Architect fortifies ${target.name}. +2 Defense.` };
-        }
+        targeting: { scope: 'ALLIES', max: 1 },
+        logic: {},
+        execution: { buff: { stat: 'defense', amount: 2 } }
     }),
-    "architect_defensive": new Skill({
+
+    "architect_defensive": Skill.generate({
         id: "architect_defensive",
         name: "Collapse",
         type: "DEFENSIVE",
         description: "Deal DMG equal to Dice (Once per battle).",
-        checkConditions: (context) => {
-            const { dice, memory } = context;
-            return !memory.architectUsed && dice >= 4;
-        },
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
-        execute: (targets, context) => {
-            const { dice, memory } = context;
-            const target = targets[0];
-            target.takeDamage(dice);
-            memory.architectUsed = true;
-            return { log: `Architect collapses the ceiling! ${dice} DMG to ${target.name}.` };
-        }
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { min: 4 }, once: true },
+        execution: { damage: { scaleWithDice: true } }
     }),
 
     // --- ENEMIES ---
 
-    // REBEL
+    // REBEL: Multi-Attack (Complex dynamic targeting)
+    // [MANUAL IMPLEMENTATION]
     "rebel_offensive": new Skill({
         id: "rebel_offensive",
         name: "Multi-Attack",
         type: "OFFENSIVE",
         description: "1 DMG. If dice <= 3, 2 DMG to another.",
-        // Dynamic max targets: 2 if dice <= 3, else 1
         maxTargets: (context) => context.dice <= 3 ? 2 : 1,
         checkConditions: (context) => true,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        getTargets: (context) => Skill.ResolveScope('ENEMIES', context), // Use new standard scope
         execute: (targets, context) => {
-            // Targets have already been selected by Targeting phase (maxTargets applied)
             const t1 = targets[0];
-            t1.takeDamage(1);
+            // Fix: t1.takeDamage -> Skill.ApplyDamage
+            Skill.ApplyDamage([t1], 1, context);
             let log = `Rebel attacks ${t1.name} (1 DMG).`;
 
             if (targets.length > 1) {
                 const t2 = targets[1];
-                t2.takeDamage(2);
+                Skill.ApplyDamage([t2], 2, context);
                 log += ` And frenzies on ${t2.name} (2 DMG)!`;
             }
             return { log };
         }
     }),
+
+    // REBEL: Desperation (Self Damage)
+    // [MANUAL IMPLEMENTATION]
     "rebel_defensive": new Skill({
         id: "rebel_defensive",
         name: "Desperation",
         type: "DEFENSIVE",
         description: "Take 1 DMG to deal 1 DMG, unless dice is 1.",
         checkConditions: (context) => context.dice !== 1,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
         execute: (targets, context) => {
             const target = targets[0];
             const user = context.user;
-            target.takeDamage(1);
-            user.takeDamage(1);
+            // Fix: takeDamage -> ApplyDamage
+            Skill.ApplyDamage([target], 1, context);
+            Skill.ApplyDamage([user], 1, context);
             return { log: `Rebel attacks recklessly! 1 DMG to ${target.name}, 1 DMG to self.` };
         }
     }),
 
-    // DRAGON
+    // DRAGON: Breath (Dynamic targeting All vs 1)
+    // [MANUAL IMPLEMENTATION]
     "dragon_offensive": new Skill({
         id: "dragon_offensive",
         name: "Dragon Breath",
         type: "OFFENSIVE",
         description: "2 DMG. If dice 6, 2 DMG to ALL.",
-        // Dynamic max targets: All (99) if dice 6, else 1
         maxTargets: (context) => context.dice === 6 ? 99 : 1,
         checkConditions: (context) => true,
-        getTargets: (context) => context.enemies.filter(e => e.isAlive()),
+        getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
         execute: (targets, context) => {
             const { dice } = context;
 
-            targets.forEach(t => t.takeDamage(2));
+            // Fix: targets.forEach(takeDamage) -> Skill.ApplyDamage
+            Skill.ApplyDamage(targets, 2, context);
 
             if (dice === 6) {
                 return { log: `Dragon breathes fire! 2 DMG to ALL (${targets.length})!` };
@@ -209,17 +160,88 @@ export const SKILL_CABINET = {
             return { log: `Dragon bites ${targets[0].name}. 2 DMG.` };
         }
     }),
-    "dragon_defensive": new Skill({
+
+    "dragon_defensive": Skill.generate({
         id: "dragon_defensive",
         name: "Hard scales",
         type: "DEFENSIVE",
         description: "+1 Defense if dice <= 3.",
-        checkConditions: (context) => context.dice <= 3,
-        getTargets: (context) => [context.user],
-        execute: (targets, context) => {
-            const user = context.user;
-            user.modifyStat('defense', 1);
-            return { log: `Dragon's scales harden. +1 Defense.` };
-        }
+        targeting: { scope: 'SELF' },
+        logic: { dice: { max: 3 } },
+        execution: { buff: { stat: 'defense', amount: 1 } }
+    }),
+
+    // --- STANDARD SKILLS (Generated) ---
+    "std_heavy_strike": Skill.generate({
+        id: "std_heavy_strike",
+        name: "Heavy Strike",
+        type: "OFFENSIVE",
+        description: "Deal 3 DMG if Dice >= 4.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { min: 4 } },
+        execution: { damage: { amount: 3 } }
+    }),
+    "std_quick_jab": Skill.generate({
+        id: "std_quick_jab",
+        name: "Quick Jab",
+        type: "OFFENSIVE",
+        description: "Deal 1 DMG.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: {},
+        execution: { damage: { amount: 1 } }
+    }),
+    "std_shield_bash": Skill.generate({
+        id: "std_shield_bash",
+        name: "Shield Bash",
+        type: "OFFENSIVE",
+        description: "Deal 2 DMG if Dice is Even.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { parity: 'even' } },
+        execution: { damage: { amount: 2 } }
+    }),
+    "std_group_heal": Skill.generate({
+        id: "std_group_heal",
+        name: "Group Heal",
+        type: "DEFENSIVE",
+        description: "Heal 1 HP to all allies if Dice is 6.",
+        targeting: { scope: 'ALLIES', max: 4 },
+        logic: { dice: { exact: 6 } },
+        execution: { heal: { amount: 1 } }
+    }),
+    "std_berserk": Skill.generate({
+        id: "std_berserk",
+        name: "Berserk",
+        type: "DEFENSIVE",
+        description: "+2 Speed to Self (Once per battle).",
+        targeting: { scope: 'SELF' },
+        logic: { once: true },
+        execution: { buff: { stat: 'speed', amount: 2 } }
+    }),
+    "std_snipe": Skill.generate({
+        id: "std_snipe",
+        name: "Snipe",
+        type: "OFFENSIVE",
+        description: "Deal 5 DMG if Dice is 6.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { exact: 6 } },
+        execution: { damage: { amount: 5 } }
+    }),
+    "std_wide_sweep": Skill.generate({
+        id: "std_wide_sweep",
+        name: "Wide Sweep",
+        type: "OFFENSIVE",
+        description: "Deal 1 DMG to 2 enemies if Dice >= 3.",
+        targeting: { scope: 'ENEMIES', max: 2 },
+        logic: { dice: { min: 3 } },
+        execution: { damage: { amount: 1 } }
+    }),
+    "std_inner_focus": Skill.generate({
+        id: "std_inner_focus",
+        name: "Inner Focus",
+        type: "DEFENSIVE",
+        description: "+1 Defense if Dice is Odd.",
+        targeting: { scope: 'SELF' },
+        logic: { dice: { parity: 'odd' } },
+        execution: { buff: { stat: 'defense', amount: 1 } }
     })
 };

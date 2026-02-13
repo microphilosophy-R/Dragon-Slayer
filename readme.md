@@ -71,3 +71,13 @@ Generate the Enemy data models (Rebel Army, Red Dragon).
 Build the Turn-Based Battle System (Initiative rolls, Friendly/Hostile turns).
 
 Implement the specific dice mechanics described for each skill.
+
+
+I have updated the Implementation Plan to correctly reflect the current state (distinguishing between what was done and what was pending) and completed the remaining integration work:
+
+Refined Logic: App.js now fully delegates game logic to src/systems/Player.js for Victory and Defeat scenarios, not just initialization.
+Confirmed Architecture:
+levels.js: Only reads from factions.js.
+factions.js: Central source of truth for rosters.
+Player.js: Central handler for game state transitions.
+The refactor is now complete and aligned with your requests. I have also included the Phase 2 Promotion Plan in the document.

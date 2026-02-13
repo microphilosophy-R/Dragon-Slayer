@@ -22,6 +22,10 @@ export class Character {
 
         // Display info
         this.description = data.description || '';
+
+        // Equipment
+        this.equipment = [];
+        this.hasActed = false; // For Appearance event
     }
 
     // Helper for easier status checks
@@ -39,42 +43,15 @@ export class Character {
         return this.getSkills().find(s => s.type === mode || s.type === 'BOTH');
     }
 
-    // --- State Mutation Methods ---
-    takeDamage(amount) {
-        if (this.hp <= 0) return 0;
-
-        let actualDamage = amount;
-
-        // Mitigation Mechanism
-        // Check if damage is less than (or equal to) defense.
-        // If yes, damage is muted (0). Otherwise applies fully.
-        // Defense is always reset to 0.
-        if (this.defense >= actualDamage) {
-            actualDamage = 0;
-        }
-
-        this.defense = 0; // Reset defense after any hit (blocked or taken)
-
-        this.hp = Math.max(0, this.hp - actualDamage);
-        return actualDamage; // Return actual damage taken for logging
-    }
-
-    heal(amount) {
-        if (this.hp <= 0) return 0;
-        const oldHp = this.hp;
-        this.hp = Math.min(this.maxHp, this.hp + amount);
-        return this.hp - oldHp;
-    }
-
-    modifyStat(stat, amount) {
-        if (stat === 'speed') {
-            this.tempSpeed += amount;
-        } else if (stat === 'defense') {
-            this.defense += amount;
-        }
-    }
 
     async act(context) {
+        // --- Event: Appearance ---
+        if (!this.hasActed) {
+            const { bus } = await import('../systems/EventBus');
+            bus.emit('Character:Appearance', { character: this, context });
+            this.hasActed = true;
+        }
+
         const results = [];
         // Determine mode based on context.activeFaction
         // If it's MY faction's turn, I use OFFENSIVE.
@@ -98,5 +75,20 @@ export class Character {
             if (result) results.push(result);
         }
         return results;
+    }
+
+    // --- Equipment Support ---
+    equip(item) {
+        if (!item) return;
+        this.equipment.push(item);
+        if (item.onEquip) item.onEquip(this);
+    }
+
+    unequip(item) {
+        const idx = this.equipment.indexOf(item);
+        if (idx > -1) {
+            this.equipment.splice(idx, 1);
+            if (item.onUnequip) item.onUnequip(this);
+        }
     }
 }

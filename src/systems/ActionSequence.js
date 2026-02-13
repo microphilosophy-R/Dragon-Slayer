@@ -6,6 +6,13 @@ export class ActionSequence {
      * All characters act, but behave differently (Offensive vs Defensive) based on who is active.
      */
     static async resolveTurn(allFactions, activeFactionId, diceValue, extraContext = {}) {
+        const { bus } = await import('./EventBus');
+        bus.emit('Turn:Start', { activeFactionId, diceValue });
+        bus.emit('Dice:Roll', { value: diceValue }); // Or maybe distinct if roll happened before? 
+        // User asked for "the rolling of the dice" and "the result". 
+        // Here we just have the result passed in. "Dice:Result" fits better.
+        bus.emit('Dice:Result', { value: diceValue });
+
         let turnLogs = [];
 
         // 1. Identify Active Logic
@@ -33,7 +40,11 @@ export class ActionSequence {
                 activeFactionId,
                 actor,
                 diceValue,
-                { isFirst, ...extraContext }
+                {
+                    isFirst,
+                    turnRank: allActors.indexOf(actor) + 1, // 1-based rank
+                    ...extraContext
+                }
             );
 
             // Delegate to Actor
@@ -47,6 +58,7 @@ export class ActionSequence {
             }
         }
 
+        bus.emit('Turn:End', { activeFactionId });
         return { logs: turnLogs };
     }
 }

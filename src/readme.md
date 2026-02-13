@@ -1,83 +1,41 @@
-How to View Scenario 0
+# Dragon Slayer - Project Overview
 
-I have generated the Start Page ("Scenario 0") for your medieval roguelike game.
+Welcome to **Dragon Slayer**, a turn-based tactical RPG featuring meaningful skill interactions and a robust event-driven architecture.
 
-Features Implemented
+## Current State: Event & Skill Systems
+We have successfully implemented the core systems that drive gameplay:
+1.  **Event System**: A global `EventBus` now allows characters, skills, and equipment to communicate seamlessly without tight coupling.
+2.  **Skill System**: A refined `Determine -> Target -> Execute` pipeline supports complex abilities, including Rerolls, Revives, and Speed-based mechanics.
+3.  **Battle Workflow**: A faction-based turn system orchestrated by `ActionSequence` and `Combat`.
 
-Atmosphere: A "Lord of the Rings" inspired dark fantasy aesthetic using MedievalSharp and Cinzel fonts, particle effects (embers), and responsive buttons.
+## Term Dictionary
 
-Architecture: The App component is set up as a State Machine. It currently defaults to scenario: 0.
+### Game Time Units
+*   **Round**: A complete cycle where **every** Faction has finished one **Turn**.
+*   **Turn**: A phase assigned to a specific **Faction**. Crucially, **ALL** characters (Friend and Foe) act during a Turn.
+    *   **Active Faction Members**: Execute **Offensive** actions.
+    *   **Opposing Faction Members**: Execute **Defensive** actions.
+*   **Action Sequence**: The sorted order (by Speed) in which all characters act within a single Turn.
 
-Data Models: I have created the HERO_DEFAULTS constant within the code containing the specific attributes (Health, Speed, Offensive/Passive skills) for Merlin, Arthur, Archer, and the Architect as requested.
+### Entities
+*   **Faction**: A group of characters allied together (e.g., 'PLAYER', 'ENEMY'). Factions share a Turn and victory conditions.
+*   **Character**: The primary actor. Has Stats (`HP`, `Speed`, `Defense`), holds **Skills**, and can equip Items.
+*   **Skill**: A discrete ability (Offensive, Defensive, or Both). Follows a strict 3-step execution flow:
+    1.  **Determine**: Check if valid (Dice roll, History).
+    2.  **Target**: Select recipients (Auto/Manual).
+    3.  **Execute**: Apply effects (Damage, Heal, Buff).
+*   **Equipment**: Items attached to a Character. They passively modify stats or actively listen to **Events** to intervene in combat (e.g., "Add +1 Damage on Hit").
 
-Buttons:
+### Mechanics
+*   **Event**: A signal broadcast by the `EventBus` (e.g., `Skill:CausingDamage`, `Character:Die`). Listeners (like Equipment) can react to or modify these signals.
+*   **Context**: A snapshot of the battle state (`Dice Value`, `Active Faction`, `History`) passed to every Skill and Event to ensure consistent logic resolution.
 
-New Expedition: Initializes the game state. Currently, it triggers an alert confirming the action, ready to be connected to Scenario 1.
+## Architecture Highlights
+*   **Models**: Located in `src/models/`, these classes (`Character`, `Skill`, `Equipment`) encapsulate data and behavior.
+*   **Systems**: Located in `src/systems/`, these managers (`Combat`, `EventBus`, `ActionSequence`) handle the game flow and rules.
+*   **Data**: Static definitions (`skills.js`, `equipment.js`) drive the content, allowing for easy balancing and expansion.
 
-Resume Chronicle: Visual placeholder (Disabled).
-
-Ancestral Legacy: Visual placeholder (Disabled).
-
-Next Steps
-
-When you are ready for Scenario 1 (The Castle), I will:
-
-Update the App component to switch scenario to 1.
-
-Build the Expedition Office UI to allow selecting 4 heroes from the roster.
-
-Build the Main Hall for random events.
-
-Scenario 1: The Castle - Walkthrough
-
-I have implemented Scenario 1, allowing you to manage your heroes and prepare for battle. Here is a breakdown of the new features:
-
-1. The Castle Hub
-
-After clicking "New Expedition" on the start screen, you are taken to the Castle Hub. You will see two main facilities:
-
-Main Hall: The place for random events and rewards.
-
-Expedition Office: The place to organize your team.
-
-2. The Main Hall (Events)
-
-When you enter the Main Hall, one of three random events (as specified in your requirements) will trigger:
-
-Blessings: Offers 3 choices to buff Health or Speed.
-
-Fever of Faith: A risky dice roll event. Roll 4+ to heal everyone, otherwise a random hero loses Speed.
-
-Fortune: Allows you to swap Passive Skills between heroes.
-
-Note: I updated the Hero data structure to separate offensiveSkill and passiveSkill strings to make this swapping logic possible.
-
-3. The Expedition Office
-
-You can see your full roster of 4 heroes (Merlin, Arthur, Archer, Architect).
-
-Click on a hero card to select or deselect them.
-
-The "Embark" button is enabled only when you have between 1 and 4 heroes selected.
-
-Currently, clicking "Embark" shows an alert (placeholder for Scenario 2).
-
-Next Steps
-
-To proceed to Scenario 2 (The Battle), I will need to:
-
-Generate the Enemy data models (Rebel Army, Red Dragon).
-
-Build the Turn-Based Battle System (Initiative rolls, Friendly/Hostile turns).
-
-Implement the specific dice mechanics described for each skill.
-
-
-I have updated the Implementation Plan to correctly reflect the current state (distinguishing between what was done and what was pending) and completed the remaining integration work:
-
-Refined Logic: App.js now fully delegates game logic to src/systems/Player.js for Victory and Defeat scenarios, not just initialization.
-Confirmed Architecture:
-levels.js: Only reads from factions.js.
-factions.js: Central source of truth for rosters.
-Player.js: Central handler for game state transitions.
-The refactor is now complete and aligned with your requests. I have also included the Phase 2 Promotion Plan in the document.
+## Next Steps
+*   **Enemy AI**: Refine the decision-making for non-player factions.
+*   **Level Progression**: Implement multiple battle types (Normal/Elite/Boss) strung together in a roguelike run.
+*   **UI Polish**: Enhance visual feedback for complex events like "Reroll" or "Revive".

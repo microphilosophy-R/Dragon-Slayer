@@ -88,4 +88,52 @@ describe('Passive Skill System', () => {
         expect(executionOrder[0]).toBe('Fast');
         expect(executionOrder[1]).toBe('Slow');
     });
+
+    test('Integration: Counter Attack triggers on Taking Damage', async () => {
+
+
+        // Give Char1 the Counter Attack skill (Real Logic)
+        // Give Char1 the Counter Attack skill (Real Logic simulation)
+        // Since Skill is mocked, we must use a plain object to ensure props are set.
+        const counterSkill = {
+            id: "std_counter",
+            name: "Counter Attack",
+            type: "BOTH",
+            trigger: "Skill:TakeDamage",
+            limitPerTurn: 1,
+            // Logic must be manually implemented for the test or we mock perform directly.
+            // But we want to test that 'perform' is CALLED.
+            // The system (Combat.js) calls perform.
+            perform: jest.fn()
+        };
+
+        // Mock getSkills for this test only
+        // We use a plain object that looks like the skill mostly, but perform is the real one?
+        // Wait, we want to test that perform CALLS logic.
+        // Actually, we want to test that handlePassiveTrigger calls perform, and perform runs logic.
+        // But perform is complicated (imports bus, etc). 
+        // Let's just spy on perform, but allow it to run? 
+        // Or simply verify perform IS called with correct context containing source.
+
+        const mockPerform = counterSkill.perform;
+
+        char1.getSkills = jest.fn().mockReturnValue([counterSkill]);
+        // Simple filter mock
+        char1.getPassiveSkills = (trigger) => trigger === 'Skill:TakeDamage' ? [counterSkill] : [];
+
+        cleanup = Combat.setupPassiveListeners(mockFactions);
+
+        // Emit Damage Event: Char2 attacks Char1
+        await bus.emit('Skill:TakeDamage', {
+            target: char1,
+            amount: 5,
+            source: char2
+        });
+
+        await new Promise(r => setTimeout(r, 10));
+
+        expect(mockPerform).toHaveBeenCalled();
+        const callContext = mockPerform.mock.calls[0][1];
+        expect(callContext.source.id).toBe('c2'); // Attacker was C2
+    });
 });

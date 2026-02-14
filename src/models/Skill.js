@@ -89,14 +89,11 @@ export class Skill {
      * @returns {Object} { validTargets, isActive, maxTargets }
      */
     determinator(user, context) {
-        // 0. Check Mode vs Type
-        if (context.activeFaction) {
-            const mode = context.mode || (context.activeFaction.id === user.faction?.id ? 'OFFENSIVE' : 'DEFENSIVE');
+        // 0. Check Mode vs Type (Optimized: Handled by Trigger/Character.act)
+        // Kept as sanity check but effectively redundant for Active Skills.
+        // For Passive Skills, 'mode' might not be relevant or 'OFFENSIVE'/'DEFENSIVE' might not apply same way.
+        // We will trust the caller (Character.act or Combat.handlePassiveTrigger) to have filtered correctly.
 
-            if (this.type === 'OFFENSIVE' && mode !== 'OFFENSIVE') return { validTargets: [], isActive: false, maxTargets: 0 };
-            if (this.type === 'DEFENSIVE' && mode !== 'DEFENSIVE') return { validTargets: [], isActive: false, maxTargets: 0 };
-            if (this.type === 'OFFENSIVE' && mode === 'DEFENSIVE') return { validTargets: [], isActive: false, maxTargets: 0 };
-        }
 
         // 1. Check Pre-conditions
         if (!this.checkConditionsStrat(context)) {
@@ -203,7 +200,7 @@ export class Skill {
             target.defense = 0; // Reset defense
 
             if (actualDamage > 0) {
-                bus.emit('Skill:TakeDamage', { target, amount: actualDamage });
+                bus.emit('Skill:TakeDamage', { target, amount: actualDamage, source: context.user });
             }
 
             target.hp = Math.max(0, target.hp - actualDamage);

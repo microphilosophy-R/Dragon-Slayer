@@ -73,7 +73,12 @@ export class Character {
         const isMyTurn = context.activeFaction && this.faction && context.activeFaction.id === this.faction.id;
         const mode = isMyTurn ? 'OFFENSIVE' : 'DEFENSIVE';
 
-        const skills = this.getSkills();
+        // Optimization: Filter skills by mode (Step 1 Trigger)
+        // We only want skills that match the current mode and are Active (Trigger: ACTION_PHASE)
+        const skills = this.getSkills().filter(s =>
+            (s.type === mode || s.type === 'BOTH') &&
+            s.trigger === 'ACTION_PHASE'
+        );
 
         for (const skill of skills) {
             // skill.perform will check internal type vs mode and validity

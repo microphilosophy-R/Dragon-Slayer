@@ -243,5 +243,26 @@ export const SKILL_CABINET = {
         targeting: { scope: 'SELF' },
         logic: { dice: { parity: 'odd' } },
         execution: { buff: { stat: 'defense', amount: 1 } }
+    }),
+
+    // --- PASSIVE SKILLS ---
+    "std_counter": new Skill({
+        id: "std_counter",
+        name: "Counter Attack",
+        type: "BOTH", // Passive doesn't strictly adhere to OFFENSIVE/DEFENSIVE types for triggers
+        description: "Deal 1 DMG back to attacker when taking damage.",
+        trigger: "Skill:TakeDamage",
+        limitPerTurn: 1, // Once per turn/round of triggers
+        checkConditions: (context) => {
+            // Context contains event payload merged.
+            // context.target is the Victim. context.user is the Owner of this skill.
+            // We only counter if WE took damage.
+            return context.target && context.target.id === context.user.id && context.source;
+        },
+        getTargets: (context) => [context.source], // Target the attacker
+        execute: (targets, context) => {
+            Skill.ApplyDamage(targets, 1, context);
+            return { log: `${context.user.name} counters! 1 DMG to ${targets[0].name}.` };
+        }
     })
 };

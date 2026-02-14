@@ -43,6 +43,7 @@ export class ActionSequence {
                 {
                     isFirst,
                     turnRank: allActors.indexOf(actor) + 1, // 1-based rank
+                    trigger: 'ACTION_PHASE', // Unified System: Active Skills trigger on this phase
                     ...extraContext
                 }
             );

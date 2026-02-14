@@ -20,10 +20,14 @@ We have successfully implemented the core systems that drive gameplay:
 ### Entities
 *   **Faction**: A group of characters allied together (e.g., 'PLAYER', 'ENEMY'). Factions share a Turn and victory conditions.
 *   **Character**: The primary actor. Has Stats (`HP`, `Speed`, `Defense`), holds **Skills**, and can equip Items.
-*   **Skill**: A discrete ability (Offensive, Defensive, or Both). Follows a strict 3-step execution flow:
-    1.  **Determine**: Check if valid (Dice roll, History).
-    2.  **Target**: Select recipients (Auto/Manual).
-    3.  **Execute**: Apply effects (Damage, Heal, Buff).
+*   **Skill**: A discrete ability (Offensive, Defensive, or Passive). Follows a flexible **4-step execution flow**:
+    1.  **Trigger**: Event signal (`ACTION_PHASE`, `Skill:TakeDamage`) that activates the skill.
+    2.  **Determinator**: Checks conditions (Dice, History, Limits) & Validity.
+    3.  **Targeting**: Selects recipients (Auto/Manual).
+    4.  **Execution**: Applies effects (Damage, Heal, Buff).
+*   **Passive Skills**: Skills triggered by specific events (not just the turn phase).
+    *   **Loop Prevention**: Limited by `limitPerTurn` (default 1).
+    *   **Resolution Order**: Multiple passives triggered by the same event resolve in order of Character **Speed** (Fastest to Slowest).
 *   **Equipment**: Items attached to a Character. They passively modify stats or actively listen to **Events** to intervene in combat (e.g., "Add +1 Damage on Hit").
 
 ### Mechanics

@@ -60,6 +60,16 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
     }, [battleLog]);
 
+    // Cleanup EventBus on unmount
+    useEffect(() => {
+        const { bus } = require('../systems/EventBus');
+        return () => {
+            console.log("BattleScreen unmounting, clearing EventBus");
+            bus.clear();
+        };
+    }, []);
+
+
     const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg} `]);
 
     // Passive Listener Setup

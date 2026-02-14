@@ -246,6 +246,7 @@ export const SKILL_CABINET = {
     }),
 
     // --- PASSIVE SKILLS ---
+    // --- PASSIVE SKILLS ---
     "std_counter": new Skill({
         id: "std_counter",
         name: "Counter Attack",
@@ -261,8 +262,67 @@ export const SKILL_CABINET = {
         },
         getTargets: (context) => [context.source], // Target the attacker
         execute: (targets, context) => {
+            // Case A: Standard Counter. I (context.user) am hitting back.
+            // Implicit Source: context.user (Me).
             Skill.ApplyDamage(targets, 1, context);
             return { log: `${context.user.name} counters! 1 DMG to ${targets[0].name}.` };
+        }
+    }),
+
+    // Example 1: Riposte (Explicit Source = User)
+    "passive_riposte": new Skill({
+        id: "passive_riposte",
+        name: "Riposte",
+        type: "DEFENSIVE",
+        description: "Parry and strike back! (Explicit Source: Self)",
+        trigger: "Skill:TakeDamage",
+        limitPerTurn: 1,
+        checkConditions: (context) => context.target?.id === context.user.id && context.source,
+        getTargets: (context) => [context.source],
+        execute: (targets, context) => {
+            // Explicitly stating 'source: context.user' ensures I am the damage dealer.
+            // Even if ApplyDamage defaults to this, being explicit documents intent.
+            Skill.ApplyDamage(targets, 2, context, { source: context.user });
+            return { log: `${context.user.name} ripostes! 2 DMG.` };
+        }
+    }),
+
+    // Example 2: Mirror Shield (Source = Original Attacker)
+    "passive_mirror_shield": new Skill({
+        id: "passive_mirror_shield",
+        name: "Mirror Shield",
+        type: "DEFENSIVE",
+        description: "Reflects the attack. (Source: Attacker)",
+        trigger: "Skill:TakeDamage",
+        limitPerTurn: 1,
+        checkConditions: (context) => context.target?.id === context.user.id && context.source,
+        getTargets: (context) => [context.source],
+        execute: (targets, context) => {
+            // We attribute the damage AS IF it came from the attacker themselves.
+            // This might trigger the attacker's own "Protection from Self" or bypass "Protection from Enemies".
+            // It prevents the Reflector from triggering "On Hit" effects (like Life Steal) because they didn't technically "hit".
+            Skill.ApplyDamage(targets, context.amount, context, { source: context.source });
+            return { log: `${context.user.name}'s Mirror Shield reflects ${context.amount} DMG back to ${targets[0].name}!` };
+        }
+    }),
+
+    // Example 3: Divine Retribution (Source = Environment/Deity)
+    "passive_karmic_retribution": new Skill({
+        id: "passive_karmic_retribution",
+        name: "Karmic Retribution",
+        type: "DEFENSIVE",
+        description: "The universe punshes aggression. (Source: FATE)",
+        trigger: "Skill:TakeDamage",
+        limitPerTurn: 1,
+        checkConditions: (context) => context.target?.id === context.user.id && context.source,
+        getTargets: (context) => [context.source],
+        execute: (targets, context) => {
+            // Attributes damage to a neutral/external source.
+            // Neither the User nor the Attacker is the source.
+            // Useful for environmental effects or true damage that shouldn't trigger specific counters.
+            const fateEntity = { id: 'fate', name: 'Fate' };
+            Skill.ApplyDamage(targets, 3, context, { source: fateEntity });
+            return { log: `${targets[0].name} suffers 3 DMG from Karmic Retribution.` };
         }
     })
 };

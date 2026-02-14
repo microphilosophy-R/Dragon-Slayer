@@ -39,6 +39,11 @@ We have successfully implemented the core systems that drive gameplay:
 *   **Systems**: Located in `src/systems/`, these managers (`Combat`, `EventBus`, `ActionSequence`) handle the game flow and rules.
 *   **Data**: Static definitions (`skills.js`, `equipment.js`) drive the content, allowing for easy balancing and expansion.
 
+## Recent Updates
+*   **Skill Logic Alignment**: Resolved an execution context mismatch in `Skill.ApplyDamage`. 
+    *   **Implication**: Passive skills (like `Counter Attack` or `Reflect`) can now correctly attribute damage to the defending character (or original attacker) instead of incorrectly inheriting the trigger's context source.
+    *   **Method**: `Skill.ApplyDamage` now accepts an `options` object with a `source` override, which takes priority over `context.source` and `context.user`.
+
 ## Next Steps
 *   **Enemy AI**: Refine the decision-making for non-player factions.
 *   **Level Progression**: Implement multiple battle types (Normal/Elite/Boss) strung together in a roguelike run.

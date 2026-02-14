@@ -1,8 +1,8 @@
 
-import { Combat } from './Combat';
+import { Combat } from '../systems/Combat';
 import { Character } from '../models/Character';
 import { Skill } from '../models/Skill';
-import { bus } from './EventBus';
+import { bus } from '../systems/EventBus';
 import { Faction } from '../models/Faction';
 
 // Mock dependencies

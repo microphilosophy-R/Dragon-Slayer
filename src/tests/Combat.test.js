@@ -1,6 +1,6 @@
 
-import { Combat } from './Combat';
-import { ActionSequence } from './ActionSequence';
+import { Combat } from '../systems/Combat';
+import { ActionSequence } from '../systems/ActionSequence';
 
 // Mock ActionSequence
 jest.mock('./ActionSequence');

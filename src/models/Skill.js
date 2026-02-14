@@ -177,11 +177,15 @@ export class Skill {
      * @param {Object} context 
      * @returns {number[]} Array of actual damage taken per target.
      */
-    static ApplyDamage(targets, amount, context) {
+    static ApplyDamage(targets, amount, context, options = {}) {
         if (!Array.isArray(targets)) targets = [targets];
 
+        // Priority: Explicit source > context.source (from event) > context.user (actor)
+        // This handles Reflect/Counter cases where actor != source of damage
+        const source = options.source || context.source || context.user;
+
         // We allow modification of 'amount' via the event payload.
-        const payload = { targets, amount, context, type: 'DAMAGE' };
+        const payload = { targets, amount, context, type: 'DAMAGE', source };
         bus.emit('Skill:CausingDamage', payload);
 
         const finalAmount = payload.amount;
@@ -200,7 +204,7 @@ export class Skill {
             target.defense = 0; // Reset defense
 
             if (actualDamage > 0) {
-                bus.emit('Skill:TakeDamage', { target, amount: actualDamage, source: context.user });
+                bus.emit('Skill:TakeDamage', { target, amount: actualDamage, source: source });
             }
 
             target.hp = Math.max(0, target.hp - actualDamage);

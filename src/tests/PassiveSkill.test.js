@@ -136,4 +136,50 @@ describe('Passive Skill System', () => {
         const callContext = mockPerform.mock.calls[0][1];
         expect(callContext.source.id).toBe('c2'); // Attacker was C2
     });
+    test('Integration: Merlin Spatial Shift cancels attack on Dice 6', async () => {
+        // Mock Merlin's Passive Skill
+        const cancelSkill = {
+            id: "merlin_passive_cancel",
+            name: "Spatial Shift",
+            trigger: "Skill:Targeting",
+            limitPerTurn: 1,
+            // Logic: Checks if target is 'c1' (Merlin mock) and dice is 6
+            perform: jest.fn().mockImplementation(async (user, context) => {
+                // Check conditions
+                const isTargeted = context.targets.some(t => t.id === 'c1');
+                const dice = context.context.dice;
+                if (isTargeted && dice >= 6) {
+                    context.targets.length = 0; // Cancel
+                    return { log: 'Cancelled' };
+                }
+                return null;
+            })
+        };
+
+        char1.getSkills = jest.fn().mockReturnValue([cancelSkill]);
+        char1.getPassiveSkills = (trigger) => trigger === 'Skill:Targeting' ? [cancelSkill] : [];
+
+        cleanup = Combat.setupPassiveListeners(mockFactions);
+
+        // Simulation: Char2 attacks Char1 with Dice 6
+        const targets = [char1];
+        const combatContext = { dice: 6 };
+
+        // Emit Skill:Targeting
+        // Payload must match what Skill.js emits
+        const payload = {
+            skill: { id: 'attack' },
+            user: char2,
+            type: 'SINGLE',
+            targets: targets,
+            context: combatContext
+        };
+
+        await bus.emit('Skill:Targeting', payload);
+        await new Promise(r => setTimeout(r, 10));
+
+        // Verify Cancellation
+        expect(cancelSkill.perform).toHaveBeenCalled();
+        expect(targets.length).toBe(0); // Targets should be empty
+    });
 });

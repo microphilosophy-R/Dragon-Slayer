@@ -9,8 +9,8 @@ export const CHARACTERS = {
         hp: 4,
         maxHp: 4,
         speed: 6,
-        skills: ['merlin_offensive', 'merlin_defensive'],
-        description: 'A powerful wizard who controls fire.'
+        skills: ['merlin_offensive', 'merlin_passive_cancel'],
+        description: 'A powerful wizard who can shift through space.'
     },
     arthur: {
         id: 'arthur',
@@ -85,6 +85,28 @@ export const CHARACTERS = {
         description: 'A warrior who trades defense for power.'
     },
 
+    // --- NEW HEROES ---
+    elara: {
+        id: 'elara',
+        name: 'Elara Moonwhisper',
+        role: 'Assassin',
+        hp: 5,
+        maxHp: 5,
+        speed: 9,
+        skills: ['elara_offensive', 'elara_passive'],
+        description: 'A nightblade who dances with shadows.'
+    },
+    thorn: {
+        id: 'thorn',
+        name: 'Thorn Bristlebeard',
+        role: 'Tank',
+        hp: 12,
+        maxHp: 12,
+        speed: 2,
+        skills: ['thorn_defensive', 'thorn_passive'],
+        description: 'A dwarven defender with spiked armor.'
+    },
+
     // --- ENEMIES ---
     rebel: {
         id: 'rebel',
@@ -144,6 +166,29 @@ export const CHARACTERS = {
         maxHp: 10,
         speed: 4,
         skills: ['rebel_offensive', 'rebel_defensive'] // Reusing basic rebel skills for now
+    },
+
+    // --- NEW ENEMIES ---
+    shadow_stalker: {
+        id: 'shadow_stalker',
+        name: 'Shadow Stalker',
+        hp: 8,
+        maxHp: 8,
+        speed: 8,
+        skills: ['shadow_offensive', 'std_counter'] // Reusing counter or specific? Let's use std_counter for now or passive if we added it? 
+        // Wait, I didn't add shadow_passive to skills.js yet, I just added 'shadow_offensive'. 
+        // Let's check my previous edit.
+        // I added 'shadow_offensive' and 'golem_passive'. Mistake in plan vs execution?
+        // I didn't add 'shadow_passive' in skills.js. I added 'golem_passive'.
+        // Let's use std_counter for Shadow Stalker for now or add it later if needed.
+    },
+    iron_golem: {
+        id: 'iron_golem',
+        name: 'Iron Golem',
+        hp: 20,
+        maxHp: 20,
+        speed: 1,
+        skills: ['golem_offensive', 'golem_passive']
     }
 };
 

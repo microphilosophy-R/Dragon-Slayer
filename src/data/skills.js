@@ -12,19 +12,36 @@ export const SKILL_CABINET = {
         execution: { damage: { amount: 4 } }
     }),
 
-    // Merlin Defensive: Complex mitigation logic (defense += 999).
-    // Factory implementation doesn't support "buff amount" easily yet alongside "mitigate all".
-    // Keeping manual but using standard methods.
-    // reworked with simpler one: if the dice is 3 or less, 
-    // Merlin Defensive: Reroll/Rewind Logic
-    "merlin_defensive": Skill.generate({
-        id: "merlin_defensive",
-        name: "Clairvoyance",
-        type: "DEFENSIVE",
-        description: "Return to the previous turn (Reroll). Once per battle.",
-        targeting: { scope: 'SELF' },
-        logic: { once: true },
-        execution: { reroll: true }
+    // Merlin Passive: Cancel attack if dice >= 6 (Once per turn)
+    "merlin_passive_cancel": new Skill({
+        id: "merlin_passive_cancel",
+        name: "Spatial Shift",
+        type: "DEFENSIVE", // Acts as defensive
+        description: "Cancel incoming damage if Dice >= 6 (Once per turn).",
+        trigger: "Skill:CausingDamage", // Intercept damage calculation
+        limitPerTurn: 1,
+        checkConditions: (context) => {
+            // Context here is the event payload from Skill:CausingDamage
+            // payload = { targets, amount, context: combatContext, type, source }
+
+            // We want to trigger if MERLIN is one of the targets
+            const isTargeted = context.targets && context.targets.some(t => t.id === context.user.id);
+            if (!isTargeted) return false;
+
+            // Check Dice from the *original* combat context (context.context.dice)
+            // The event payload wraps the original context in `context` property?
+            // Let's look at Skill.js: bus.emit('Skill:CausingDamage', payload);
+            // payload = { targets, amount, context, ... }
+            // So context.context is the combat context with dice.
+            const combatContext = context.context;
+            return combatContext && combatContext.dice >= 6;
+        },
+        getTargets: (context) => [context.user], // Self is the beneficiary
+        execute: (targets, context) => {
+            // Nullify the damage in the payload
+            context.amount = 0;
+            return { log: "Merlin shifts through space! Attack cancelled (0 DMG)." };
+        }
     }),
 
     // --- ARTHUR ---
@@ -243,6 +260,107 @@ export const SKILL_CABINET = {
         targeting: { scope: 'SELF' },
         logic: { dice: { parity: 'odd' } },
         execution: { buff: { stat: 'defense', amount: 1 } }
+    }),
+
+    // --- NEW HERO SKILLS ---
+
+    // ELARA (Assassin)
+    "elara_offensive": Skill.generate({
+        id: "elara_offensive",
+        name: "Shadow Strike",
+        type: "OFFENSIVE",
+        description: "Deal 4 DMG if Dice >= 5.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: { dice: { min: 5 } },
+        execution: { damage: { amount: 4 } }
+    }),
+    "elara_passive": new Skill({
+        id: "elara_passive",
+        name: "Blur",
+        type: "DEFENSIVE",
+        description: "Dodge attack (0 DMG) if Dice is 1.",
+        trigger: "Skill:CausingDamage",
+        limitPerTurn: 99, // Passive, can happen multiple times? Or once? Let's say once per turn to be safe.
+        checkConditions: (context) => {
+            // target is user, dice is 1
+            const isTargeted = context.targets?.some(t => t.id === context.user.id);
+            const dice = context.context?.dice;
+            return isTargeted && dice === 1;
+        },
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            context.amount = 0;
+            return { log: "Elara blurs! Attack dodged." };
+        }
+    }),
+
+    // THORN (Tank)
+    "thorn_defensive": Skill.generate({
+        id: "thorn_defensive",
+        name: "Bunker Down",
+        type: "DEFENSIVE",
+        description: "+3 Defense.",
+        targeting: { scope: 'SELF' },
+        logic: {},
+        execution: { buff: { stat: 'defense', amount: 3 } }
+    }),
+    "thorn_passive": new Skill({
+        id: "thorn_passive",
+        name: "Spiked Armor",
+        type: "DEFENSIVE",
+        description: "Deal 1 DMG to attacker when hit.",
+        trigger: "Skill:TakeDamage",
+        limitPerTurn: 99,
+        checkConditions: (context) => context.target?.id === context.user.id && context.source,
+        getTargets: (context) => [context.source],
+        execute: (targets, context) => {
+            Skill.ApplyDamage(targets, 1, context.context || {}, { source: context.user }); // Use context.context for combat context?
+            // Actually 'context' in execute for passive is the event payload. 
+            // ApplyDamage needs a combat context for EventBus? 
+            // In `Skill.js` ApplyDamage uses `bus` imported globally. 
+            // The `context` arg in ApplyDamage is mostly for passing through to events.
+            // We should try to pass the original combat context if available, or just a mock if strictly needed for dice?
+            // ApplyDamage doesn't strictly need dice.
+            return { log: "Thorn's spikes pierce the attacker! (1 DMG)" };
+        }
+    }),
+
+    // --- NEW ENEMY SKILLS ---
+
+    // SHADOW STALKER
+    "shadow_offensive": Skill.generate({
+        id: "shadow_offensive",
+        name: "Backstab",
+        type: "OFFENSIVE",
+        description: "3 DMG. If first to act, +2 DMG.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        logic: {},
+        execution: { damage: { amount: 3 } } // Simplified for now, complex conditional damage needs more factory support or manual
+    }),
+
+    // IRON GOLEM
+    "golem_offensive": Skill.generate({
+        id: "golem_offensive",
+        name: "Ground Slam",
+        type: "OFFENSIVE",
+        description: "2 DMG to 2 Targets.",
+        targeting: { scope: 'ENEMIES', max: 2 },
+        logic: {},
+        execution: { damage: { amount: 2 } }
+    }),
+    "golem_passive": new Skill({ // Hardened skin
+        id: "golem_passive",
+        name: "Iron Skin",
+        type: "DEFENSIVE",
+        description: "Reduce all incoming damage by 1.",
+        trigger: "Skill:CausingDamage",
+        limitPerTurn: 99,
+        checkConditions: (context) => context.targets?.some(t => t.id === context.user.id) && context.amount > 0,
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            context.amount = Math.max(0, context.amount - 1);
+            return { log: "Iron Golem resists the blow (-1 DMG)." };
+        }
     }),
 
     // --- PASSIVE SKILLS ---

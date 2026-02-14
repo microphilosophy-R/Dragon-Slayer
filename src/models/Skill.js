@@ -62,15 +62,28 @@ export class Skill {
 
         // Event: Targeting Types
         if (selectedTargets && selectedTargets.length > 0) {
-            if (selectedTargets.length === 1) {
-                if (selectedTargets[0].id === user.id) {
-                    bus.emit('Skill:Targeting', { skill: this, user, type: 'SELF', targets: selectedTargets });
-                } else {
-                    bus.emit('Skill:Targeting', { skill: this, user, type: 'SINGLE', targets: selectedTargets });
-                }
-            } else {
-                bus.emit('Skill:Targeting', { skill: this, user, type: 'MULTI', targets: selectedTargets });
-            }
+            // New Payload: { skill, user, type, targets, context }
+            // context contains the dice roll etc.
+            const payload = {
+                skill: this,
+                user,
+                type: selectedTargets.length === 1 && selectedTargets[0].id === user.id ? 'SELF' : (selectedTargets.length === 1 ? 'SINGLE' : 'MULTI'),
+                targets: selectedTargets,
+                context // Pass full context for dice access
+            };
+
+            bus.emit('Skill:Targeting', payload);
+
+            // Re-assign selectedTargets just in case reference was broken, though generic object payload usually keeps ref.
+            // But if handler did `payload.targets = []`, we need to respect that?
+            // JS pass-by-reference for arrays in objects means payload.targets IS selectedTargets.
+            // But if they did `payload.targets = newArray`, we lose it in `selectedTargets`.
+            // BETTER: Use the payload's targets property as the source of truth.
+            // However, local `selectedTargets` variable needs to be updated if we want to rely on payload changes if they replaced the array entirely (which they shouldn't, they should mutate).
+            // But to be safe properly, let's treat payload.targets as the definitive list.
+            // selectedTargets is const, so we can't reassign. 
+            // Actually, we should probably rely on mutation of the array.
+            // "context.targets.length = 0" implies mutation.
         }
 
         if (!selectedTargets || selectedTargets.length === 0) {

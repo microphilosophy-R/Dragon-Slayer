@@ -1,54 +1,120 @@
 import { ActionSequence } from './ActionSequence';
+import { createDraft, finishDraft } from 'immer';
 import { Character } from '../models/Character';
 import { Faction } from '../models/Faction';
 
 export class Combat {
     /**
-     * Clones the faction state to ensure mutations don't affect previous history or React state directly until ready.
-     * However, since we want direct mutation to "stick" for the next step of the chain, 
-     * we should clone ONCE at the start of the handler, and then pass the mutable objects through.
-     */
-    static cloneFactions(factions) {
-        return factions.map(f => {
-            const newChars = f.characters.map(c => {
-                // Determine skillIds to pass
-                const skillIds = c.skillIds;
-
-                const copyData = {
-                    ...c,
-                    skillIds: skillIds,
-                    hp: c.hp,
-                    maxHp: c.maxHp,
-                    speed: c.speed,
-                    tempSpeed: c.tempSpeed,
-                    defense: c.defense
-                };
-
-                const copy = new Character(copyData);
-                return copy;
-            });
-            return new Faction(f.id, f.type, f.name, newChars);
-        });
-    }
-
-    /**
      * Execute a turn for a specific active faction (e.g. Player Turn).
-     * @param {Faction[]} currentFactions - The current state of factions (mutable copies).
+     * Uses Immer to ensure immutability while allowing imperative logic in ActionSequence.
+     * 
+     * @param {Faction[]} baseFactions - The current immutable state of factions.
      * @param {string} activeFactionId - ID of the faction taking the turn.
      * @param {number} diceValue - The dice roll for this turn.
      * @param {Object} extraContext - { history, memory, requestPlayerTarget }
-     * @returns {Object} { factions: Faction[], logs: string[] }
+     * @returns {Promise<{ factions: Faction[], logs: string[] }>}
      */
-    static async processMainTurn(currentFactions, activeFactionId, diceValue, extraContext) {
-        // 1. Resolve Sequence (Mutates characters in currentFactions)
-        // Since ActionSequence iterates allActors found in currentFactions, mutations apply directly.
+    static async processMainTurn(baseFactions, activeFactionId, diceValue, extraContext) {
+        let logs = [];
 
-        const { logs } = await ActionSequence.resolveTurn(currentFactions, activeFactionId, diceValue, extraContext);
+        // Manually handle draft to avoid async producer issues with Immer in this environment
+        const draft = createDraft(baseFactions);
+        try {
+            // 1. Resolve Sequence (Mutates the draft directly)
+            const result = await ActionSequence.resolveTurn(draft, activeFactionId, diceValue, extraContext);
+            logs = result.logs;
+        } catch (e) {
+            console.error("Combat Logic Error:", e);
+            // In case of error, we might want to return original state or throw? 
+            // For now, let's just finish the draft with whatever happened or throw.
+            throw e;
+        }
+
+        const nextFactions = finishDraft(draft);
 
         return {
-            factions: currentFactions, // mutated
+            factions: nextFactions,
             logs
         };
+    }
+
+
+    /**
+     * Sets up global event listeners for passive skills.
+     * Should be called at the start of battle/context initialization.
+     * @param {Faction[]} factions 
+     * @returns {Function} cleanup function to remove listeners
+     */
+    static setupPassiveListeners(factions) {
+        const { bus } = require('./EventBus'); // Late require to avoid cycle if any
+
+        // 1. Identify all unique triggers to listen for
+        const allChars = factions.flatMap(f => f.characters);
+        const triggers = new Set();
+        allChars.forEach(c => {
+            c.getSkills().forEach(s => {
+                if (s.trigger && s.trigger !== 'ACTION_PHASE') {
+                    triggers.add(s.trigger);
+                }
+            });
+        });
+
+        const handlers = [];
+
+        // 2. Create a handler for each trigger
+        triggers.forEach(trigger => {
+            const handler = async (payload) => {
+                await Combat.handlePassiveTrigger(trigger, payload, factions);
+            };
+            bus.on(trigger, handler);
+            handlers.push({ trigger, handler });
+        });
+
+        // Return cleanup
+        return () => {
+            handlers.forEach(({ trigger, handler }) => {
+                bus.off(trigger, handler);
+            });
+        };
+    }
+
+    /**
+     * Handles a triggered event by finding and executing relevant passive skills.
+     * @param {string} trigger - Event name
+     * @param {Object} payload - Event payload
+     * @param {Faction[]} factions - Current game state
+     */
+    static async handlePassiveTrigger(trigger, payload, factions) {
+        // 1. Identify Candidates
+        const allChars = factions.flatMap(f => f.characters);
+
+        // 2. Sort by Speed (Descending) - As calculated at start of round/turn
+        // Note: For now we use current tempSpeed. Optimally this is cached 'RoundSpeed'.
+        allChars.sort((a, b) => b.tempSpeed - a.tempSpeed);
+
+        // 3. Iterate and Execute
+        for (const actor of allChars) {
+            if (actor.hp <= 0) continue; // Dead don't trigger passives usually
+
+            const passives = actor.getPassiveSkills(trigger);
+
+            for (const skill of passives) {
+                // Create context for this specific execution
+                // We need to merge the event payload into the context so the skill checks conditions against it
+                // e.g. "Triggered by Damage", check "Amount > 5"
+                const context = Combat.createContext(
+                    factions,
+                    actor.faction?.id, // Active faction might be irrelevant for passive, using actor's
+                    actor,
+                    payload.dice || 0, // Event might not have dice, default 0
+                    { ...payload, isPassive: true }
+                );
+
+                // 4-Step Process: Trigger (Already done) -> Determinator -> Targeting -> Execution
+                // perform() handles valid check & execution
+                await skill.perform(actor, context);
+            }
+        }
     }
 
     /**
@@ -92,6 +158,9 @@ export class Combat {
             allies: allActors.filter(c => c.faction.id === currentActor.faction.id),
             enemies: allActors.filter(c => c.faction.id !== currentActor.faction.id),
             allFactions: allFactions,
+
+            memory: extraContext.memory || {},
+            history: extraContext.history || [],
             ...extraContext
         };
     }

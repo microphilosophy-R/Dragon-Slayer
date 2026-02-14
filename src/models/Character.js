@@ -40,7 +40,13 @@ export class Character {
     // Consolidated method as requested: "use a parameter to determine"
     getSkill(mode) {
         // Mode: 'OFFENSIVE' or 'DEFENSIVE'
-        return this.getSkills().find(s => s.type === mode || s.type === 'BOTH');
+        // Legacy support: checks type. 
+        // For Active Actions, we usually only want skills triggered by 'ACTION_PHASE' (default)
+        return this.getSkills().find(s => (s.type === mode || s.type === 'BOTH') && s.trigger === 'ACTION_PHASE');
+    }
+
+    getPassiveSkills(triggerEvent) {
+        return this.getSkills().filter(s => s.trigger === triggerEvent);
     }
 
 

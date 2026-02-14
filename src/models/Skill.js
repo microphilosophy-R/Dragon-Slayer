@@ -14,6 +14,9 @@ export class Skill {
         this.description = data.description;
         this.targetingMode = data.targetingMode || 'AUTO'; // 'AUTO', 'MANUAL'
         this.maxTargets = data.maxTargets || 1; // Default to single target
+        this.trigger = data.trigger || 'ACTION_PHASE'; // Default to active skill behavior
+        this.limitPerTurn = data.limitPerTurn !== undefined ? data.limitPerTurn : 1; // Default 1 for safety
+
 
         // --- Logic Strategies (Injected Behavior) ---
         // Defaults to always valid, no targets, no effect if not provided.
@@ -267,7 +270,7 @@ export class Skill {
     static generate(config) {
         // config = { id, name, type, logic: { ... }, execution: { ... }, targeting: { ... } }
 
-        const { id, name, type, description, logic = {}, execution = {}, targeting = {} } = config;
+        const { id, name, type, description, trigger, limitPerTurn, logic = {}, execution = {}, targeting = {} } = config;
 
         // 1. Build checkConditions strategy
         const checkConditions = (context) => {
@@ -293,6 +296,10 @@ export class Skill {
 
             // Logic: Custom Requirement (e.g., 'once')
             if (logic.once && memory && memory[`${id}_used`]) return false;
+
+            // Logic: Limit Per Turn
+            if (memory && memory[`${id}_turn_count`] >= (limitPerTurn !== undefined ? limitPerTurn : 1)) return false;
+
 
             // Logic: Rank/First Check
             if (logic.onlyFirst && !context.isFirst) return false;
@@ -372,6 +379,10 @@ export class Skill {
                 memory[`${id}_used`] = true;
             }
 
+            // Increment turn count
+            memory[`${id}_turn_count`] = (memory[`${id}_turn_count`] || 0) + 1;
+
+
             // Speed debuff special case (Archer)
             if (execution.meta && execution.meta.speedDebuffIfFirst && context.isFirst) {
                 Skill.ModifyStat([context.user], 'speed', -1);
@@ -382,11 +393,18 @@ export class Skill {
             return { log: `${name}: ${logParts.join(' ')}` };
         };
 
+
+
+        // Apply new props after creation (since we just passed them to constructor via 'new Skill' but the object construction in 'generate' was manual before? 
+        // No, 'new Skill' takes 'data'. We need to make sure we pass 'trigger' and 'limitPerTurn' to it.
+        // The return below constructs 'new Skill' with the object. Let's add them there.
         return new Skill({
             id,
             name,
             type,
             description,
+            trigger,
+            limitPerTurn,
             targetingMode: targeting.mode || 'AUTO',
             maxTargets,
             checkConditions,

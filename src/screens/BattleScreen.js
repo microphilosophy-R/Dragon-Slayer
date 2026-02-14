@@ -62,6 +62,15 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
     const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg} `]);
 
+    // Passive Listener Setup
+    useEffect(() => {
+        if (factions.length > 0) {
+            const cleanup = Combat.setupPassiveListeners(factions);
+            return () => cleanup();
+        }
+    }, [factions]); // Re-bind if factions change structure (unlikely deep change, but safe)
+
+
     // --- CORE LOGIC ---
 
     const requestPlayerTarget = (candidates) => {
@@ -121,7 +130,8 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
         // 1. Snapshot State (Clone) to ensure proper mutation tracking
         // We use an internal variable `currentFactions` to track state across the async steps.
-        let currentFactions = Combat.cloneFactions(factions);
+        // With Immer refactor, we pass the current state (factions) and get back the new state.
+        let currentFactions = factions;
 
         // --- PLAYER TURN ---
         const playerFactionId = currentFactions[0].id;
@@ -138,7 +148,8 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
         // Update Logs & State
         res1.logs.forEach(l => addLog(l));
-        setFactions([...currentFactions]); // Render updates
+        currentFactions = res1.factions; // Update our local tracking reference
+        setFactions(currentFactions); // Render updates
 
         if (checkWinCondition(currentFactions)) return;
 
@@ -162,7 +173,8 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         });
 
         res2.logs.forEach(l => addLog(l));
-        setFactions([...currentFactions]);
+        currentFactions = res2.factions;
+        setFactions(currentFactions);
 
         if (checkWinCondition(currentFactions)) return;
 

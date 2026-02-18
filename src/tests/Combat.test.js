@@ -3,7 +3,7 @@ import { Combat } from '../systems/Combat';
 import { ActionSequence } from '../systems/ActionSequence';
 
 // Mock ActionSequence
-jest.mock('./ActionSequence');
+jest.mock('../systems/ActionSequence');
 
 describe('Combat System with Immer', () => {
     let mockFactions;

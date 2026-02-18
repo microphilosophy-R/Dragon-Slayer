@@ -1,4 +1,5 @@
 import { SKILL_CABINET } from '../data/skills';
+import defaultProfile from '../images/hero_portrait.png';
 
 export class Character {
     constructor(data) {
@@ -22,6 +23,7 @@ export class Character {
 
         // Display info
         this.description = data.description || '';
+        this.profile = data.profile || defaultProfile;
 
         // Equipment
         this.equipment = [];
@@ -57,6 +59,10 @@ export class Character {
             bus.emit('Character:Appearance', { character: this, context });
             this.hasActed = true;
         }
+
+        // Notify start of action for UI animation
+        const { bus } = await import('../systems/EventBus');
+        bus.emit('Character:ActionStart', { characterId: this.id });
 
         const results = [];
         // Determine mode based on context.activeFaction

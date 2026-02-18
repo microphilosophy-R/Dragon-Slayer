@@ -1,13 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dices, Skull, Zap, Heart, Shield, Swords } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { CharacterCard } from '../components/ui/CharacterCard';
+
+import { CharacterStrip } from '../components/ui/CharacterStrip';
 import { ActionSequence } from '../systems/ActionSequence';
+import { ActionOrderBar } from '../components/ui/ActionOrderBar';
 import { Combat } from '../systems/Combat';
 import { LEVELS } from '../data/levels';
 import { CHARACTERS } from '../data/characters';
 import { Faction } from '../models/Faction';
 import { Character } from '../models/Character';
+
+// Import Dice Images
+import dice1 from '../images/dice1.png';
+import dice2 from '../images/dice2.png';
+import dice3 from '../images/dice3.png';
+import dice4 from '../images/dice4.png';
+import dice5 from '../images/dice5.png';
+import dice6 from '../images/dice6.png';
+
+const DICE_IMAGES = {
+    1: dice1, 2: dice2, 3: dice3,
+    4: dice4, 5: dice5, 6: dice6
+};
 
 const rollDice = (sides = 6) => Math.floor(Math.random() * sides) + 1;
 
@@ -26,6 +41,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
     // UI selection state
     const [selectedCharacter, setSelectedCharacter] = useState(null);
+    const [activeCharacterId, setActiveCharacterId] = useState(null);
     // Targeting State: { active: boolean, candidates: [], resolve: fn }
     const [targetingState, setTargetingState] = useState(null);
 
@@ -72,13 +88,34 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
     const addLog = (msg) => setBattleLog(prev => [...prev, `[Rd ${battleRound}] ${msg} `]);
 
-    // Passive Listener Setup
+    // Passive Listener Setup & Action Animation
     useEffect(() => {
         if (factions.length > 0) {
-            const cleanup = Combat.setupPassiveListeners(factions);
-            return () => cleanup();
+            const cleanupPassives = Combat.setupPassiveListeners(factions);
+
+            // Listen for Active Action
+            const { bus } = require('../systems/EventBus');
+            const onActionStart = ({ characterId }) => {
+                setActiveCharacterId(characterId);
+                // Auto-clear after a short duration if no End event (though Turn:End handles it mostly)
+                // But actions are fast. Let's keep it highlighted until next one or turn end.
+            };
+
+            // Clear on Turn/Round updates to be safe
+            const onTurnEnd = () => setActiveCharacterId(null);
+
+            bus.on('Character:ActionStart', onActionStart);
+            bus.on('Turn:End', onTurnEnd);
+            bus.on('Round:End', onTurnEnd);
+
+            return () => {
+                cleanupPassives();
+                bus.off('Character:ActionStart', onActionStart);
+                bus.off('Turn:End', onTurnEnd);
+                bus.off('Round:End', onTurnEnd);
+            };
         }
-    }, [factions]); // Re-bind if factions change structure (unlikely deep change, but safe)
+    }, [factions]); // Re-bind if factions change structure
 
 
     // --- CORE LOGIC ---
@@ -210,101 +247,97 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     const [playerFaction, enemyFaction] = factions;
 
     return (
-        <div className="flex flex-col h-screen bg-stone-950 p-2 md:p-6 animate-fade-in">
+        <div className="flex flex-col h-screen bg-stone-800 p-2 md:p-6 animate-fade-in">
             {/* HEADER */}
-            <div className="flex justify-between items-center mb-4 text-amber-100 border-b border-stone-800 pb-2">
-                <div className="flex gap-4 items-center">
+            {/* HEADER - Action Order */}
+            <div className="flex justify-between items-center mb-4 text-amber-100 border-b border-stone-800 pb-2 gap-4">
+                <div className="flex gap-4 items-center flex-shrink-0">
                     <h2 className="text-xl font-serif text-amber-500">Round {battleRound}</h2>
-                    <div className="text-sm text-stone-400">{turnPhase}</div>
+                    <div className="text-sm text-stone-400 font-mono">{turnPhase}</div>
                 </div>
-                <div className="flex items-center gap-2 bg-stone-900 px-4 py-1 rounded border border-stone-700">
-                    <Dices size={18} className="text-amber-400" />
-                    <span className="text-xl font-bold">{diceValue}</span>
+
+                {/* Action Order Bar */}
+                <div className="flex-1 overflow-hidden">
+                    <ActionOrderBar factions={factions} activeCharacterId={activeCharacterId} />
                 </div>
             </div>
 
             {/* BATTLE ARENA */}
-            <div className="flex-1 flex flex-col md:flex-row gap-6 mb-4">
-                {/* PLAYER FACTION */}
-                <div className="flex-1 bg-stone-900/40 p-4 rounded-lg border border-stone-800/50">
-                    <div className="text-stone-400 mb-2 font-serif flex justify-between">
-                        <span>{playerFaction.name}</span>
-                        <Swords size={16} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {playerFaction.characters.map(char => {
-                            const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
-                            return (
-                                <CharacterCard
-                                    key={char.id}
-                                    char={char}
-                                    defense={char.defense}
-                                    onClick={() => handleCardClick(char)}
-                                    className={`
-                                    ${char.hp <= 0 ? 'opacity-50 grayscale' : ''}
-                                    ${isTargetable ? 'ring-2 ring-amber-400 cursor-pointer scale-105' : ''}
-                                `}
-                                />
-                            )
-                        })}
-                    </div>
-                </div>
+            <div className={`flex-1 grid grid-cols-1 md:grid-cols-${Math.min(factions.length, 4)} gap-4 mb-4 overflow-hidden`}>
+                {factions.map((faction, idx) => {
+                    const isPlayer = faction.type === 'PLAYER';
+                    return (
+                        <div
+                            key={faction.id}
+                            className={`
+                                flex flex-col h-full rounded-lg border p-3 overflow-hidden
+                                ${isPlayer ? 'bg-stone-900/60 border-stone-700' : 'bg-red-950/20 border-red-900/30'}
+                            `}
+                        >
+                            <div className={`mb-3 font-serif flex justify-between items-center ${isPlayer ? 'text-stone-300' : 'text-red-900/70'}`}>
+                                <h3 className="font-bold">{faction.name}</h3>
+                                {isPlayer ? <Swords size={16} /> : <Skull size={16} />}
+                            </div>
 
-                {/* VS */}
-                <div className="flex items-center justify-center text-stone-700 font-serif font-bold text-2xl">
-                    VS
-                </div>
-
-                {/* ENEMY FACTION */}
-                <div className="flex-1 bg-red-950/10 p-4 rounded-lg border border-red-900/20">
-                    <div className="text-red-900/60 mb-2 font-serif text-right flex justify-between flex-row-reverse">
-                        <span>{enemyFaction.name}</span>
-                        <Skull size={16} />
-                    </div>
-                    <div className="flex flex-col gap-3 items-center">
-                        {enemyFaction.characters.map(char => {
-                            const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
-                            return (
-                                <CharacterCard
-                                    key={char.id}
-                                    char={char}
-                                    defense={char.defense}
-                                    compact
-                                    onClick={() => handleCardClick(char)}
-                                    className={`
-                                    ${char.hp <= 0 ? 'opacity-50 grayscale' : ''}
-                                    ${isTargetable ? 'ring-2 ring-red-500 cursor-pointer scale-105' : ''}
-                                `}
-                                />
-                            )
-                        })}
-                    </div>
-                </div>
+                            <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
+                                {faction.characters.map(char => {
+                                    const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
+                                    const isSelected = selectedCharacter?.id === char.id;
+                                    const isActive = activeCharacterId === char.id;
+                                    return (
+                                        <CharacterStrip
+                                            key={char.id}
+                                            char={char}
+                                            isSelected={isSelected}
+                                            isTargetable={isTargetable}
+                                            isActive={isActive}
+                                            onClick={() => handleCardClick(char)}
+                                        />
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* CONTROL PANEL */}
-            <div className="h-48 flex gap-4">
+
+            {/* CONTROL PANEL & DICE AREA */}
+            <div className="h-48 flex gap-4 relative">
                 <div className="w-1/3 flex flex-col justify-center gap-3">
-                    {turnPhase === 'PLAYER_WAIT_ROLL' ? (
-                        <Button primary icon={Dices} onClick={handlePlayerRoll} className="h-16 text-lg">
-                            Roll Dice & Fight
-                        </Button>
-                    ) : (
-                        <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded">
-                            {targetingState?.active ? (
-                                <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
-                            ) : (
-                                turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." : "Resolving Combat..."
-                            )}
-                        </div>
-                    )}
+                    {/* Status / Prompt */}
+                    <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded bg-black/40">
+                        {targetingState?.active ? (
+                            <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
+                        ) : (
+                            turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." :
+                                turnPhase === 'RESOLVING' ? "Resolving Combat..." :
+                                    "Awaiting Command"
+                        )}
+                    </div>
                 </div>
 
-                <div className="w-2/3 bg-black/60 border border-stone-800 p-3 rounded font-mono text-sm text-green-400/80 overflow-y-auto" ref={logRef}>
-                    {battleLog.map((l, i) => (
-                        <div key={i} className="mb-1 border-b border-stone-900/50 pb-1">{l}</div>
-                    ))}
-                </div>
+                {/* DICE CONTAINER - BOTTOM CENTER ABSOLUTE/OVERLAY */}
+                {(turnPhase === 'PLAYER_WAIT_ROLL' || diceValue > 0) && (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex flex-col items-center z-50">
+                        {turnPhase === 'PLAYER_WAIT_ROLL' ? (
+                            <Button primary icon={Dices} onClick={handlePlayerRoll} className="h-20 w-48 text-xl shadow-xl shadow-amber-900/20 animate-bounce">
+                                ROLL
+                            </Button>
+                        ) : (
+                            <div className="flex flex-col items-center animate-drop-bounce">
+                                <div className="w-24 h-24 bg-stone-900 border-4 border-amber-600 rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.4)] overflow-hidden bg-black">
+                                    <img
+                                        src={DICE_IMAGES[diceValue] || DICE_IMAGES[1]}
+                                        alt={`Dice ${diceValue}`}
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

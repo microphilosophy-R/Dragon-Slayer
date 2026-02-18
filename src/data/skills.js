@@ -9,7 +9,8 @@ export const SKILL_CABINET = {
         description: "4 DMG if dice is 6.",
         targeting: { mode: 'MANUAL', max: 1, scope: 'ENEMIES' },
         logic: { dice: { exact: 6 } },
-        execution: { damage: { amount: 4 } }
+        execution: { damage: { amount: 4 } },
+        animation: 'attacking'
     }),
 
     // Merlin Passive: Cancel attack if dice >= 6 (Once per turn)
@@ -52,7 +53,8 @@ export const SKILL_CABINET = {
         description: "1 DMG if dice >= 4.",
         targeting: { scope: 'ENEMIES' },
         logic: { dice: { min: 4 } },
-        execution: { damage: { amount: 1 } }
+        execution: { damage: { amount: 1 } },
+        animation: 'attacking'
     }),
 
     "arthur_defensive": Skill.generate({
@@ -75,7 +77,8 @@ export const SKILL_CABINET = {
         execution: {
             damage: { amount: 1 },
             meta: { speedDebuffIfFirst: true }
-        }
+        },
+        animation: 'attacking'
     }),
 
     "archer_defensive": Skill.generate({
@@ -96,7 +99,8 @@ export const SKILL_CABINET = {
         description: "Give an ally +2 Defense.",
         targeting: { scope: 'ALLIES', max: 1 },
         logic: {},
-        execution: { buff: { stat: 'defense', amount: 2 } }
+        execution: { buff: { stat: 'defense', amount: 2 } },
+        animation: 'buff'
     }),
 
     "architect_defensive": Skill.generate({
@@ -119,6 +123,7 @@ export const SKILL_CABINET = {
         type: "OFFENSIVE",
         description: "1 DMG. If dice <= 3, 2 DMG to another.",
         maxTargets: (context) => context.dice <= 3 ? 2 : 1,
+        animation: 'attacking',
         checkConditions: (context) => true,
         getTargets: (context) => Skill.ResolveScope('ENEMIES', context), // Use new standard scope
         execute: (targets, context) => {
@@ -223,7 +228,8 @@ export const SKILL_CABINET = {
         description: "Heal 1 HP to all allies if Dice is 6.",
         targeting: { scope: 'ALLIES', max: 4 },
         logic: { dice: { exact: 6 } },
-        execution: { heal: { amount: 1 } }
+        execution: { heal: { amount: 1 } },
+        animation: 'healing'
     }),
     "std_berserk": Skill.generate({
         id: "std_berserk",

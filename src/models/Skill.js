@@ -1,7 +1,6 @@
 /**
  * Represents a discrete ability or action a Character can perform.
  * Follows a strict 3-step process: Determine -> Target -> Execute.
- * Follows a strict 3-step process: Determine -> Target -> Execute.
  */
 import { bus } from '../systems/EventBus';
 
@@ -30,22 +29,18 @@ export class Skill {
             return shuffled.slice(0, max);
         });
         this.executeStrat = data.execute || (() => ({ log: 'No effect', actions: [] }));
+        this.animation = data.animation; // New property
     }
 
     /**
      * MAIN ENTRY POINT
      * Orchestrates the full execution flow: Determination, Targeting, then Execution.
-     * Orchestrates the strict 3-step process: Determine -> Target -> Execute.
      * @param {Character} user - The character using the skill.
      * @param {Object} context - The combat state.
      * @returns {Promise<Object|null>} The result ({ log, actions }) or null if invalid/cancelled.
      */
     async perform(user, context) {
         const { bus } = await import('../systems/EventBus');
-
-        // Event: Determing True/False? 
-        // User asked: "Determing True", "Determing False"
-        // We can emit 'Skill:Determining' and then result.
 
         // Step 1: Determination
         const { validTargets, isActive, maxTargets } = this.determinator(user, context);
@@ -62,8 +57,6 @@ export class Skill {
 
         // Event: Targeting Types
         if (selectedTargets && selectedTargets.length > 0) {
-            // New Payload: { skill, user, type, targets, context }
-            // context contains the dice roll etc.
             const payload = {
                 skill: this,
                 user,
@@ -73,17 +66,6 @@ export class Skill {
             };
 
             bus.emit('Skill:Targeting', payload);
-
-            // Re-assign selectedTargets just in case reference was broken, though generic object payload usually keeps ref.
-            // But if handler did `payload.targets = []`, we need to respect that?
-            // JS pass-by-reference for arrays in objects means payload.targets IS selectedTargets.
-            // But if they did `payload.targets = newArray`, we lose it in `selectedTargets`.
-            // BETTER: Use the payload's targets property as the source of truth.
-            // However, local `selectedTargets` variable needs to be updated if we want to rely on payload changes if they replaced the array entirely (which they shouldn't, they should mutate).
-            // But to be safe properly, let's treat payload.targets as the definitive list.
-            // selectedTargets is const, so we can't reassign. 
-            // Actually, we should probably rely on mutation of the array.
-            // "context.targets.length = 0" implies mutation.
         }
 
         if (!selectedTargets || selectedTargets.length === 0) {
@@ -91,6 +73,12 @@ export class Skill {
         }
 
         // Step 3: Execution
+        // Trigger Animation if defined (Wait for it?)
+        if (this.animation) {
+            const { AnimationSkill } = await import('../systems/AnimationSkill');
+            await AnimationSkill.play(this.animation, user, selectedTargets, context);
+        }
+
         return this.execute(user, context, selectedTargets);
     }
 
@@ -102,12 +90,6 @@ export class Skill {
      * @returns {Object} { validTargets, isActive, maxTargets }
      */
     determinator(user, context) {
-        // 0. Check Mode vs Type (Optimized: Handled by Trigger/Character.act)
-        // Kept as sanity check but effectively redundant for Active Skills.
-        // For Passive Skills, 'mode' might not be relevant or 'OFFENSIVE'/'DEFENSIVE' might not apply same way.
-        // We will trust the caller (Character.act or Combat.handlePassiveTrigger) to have filtered correctly.
-
-
         // 1. Check Pre-conditions
         if (!this.checkConditionsStrat(context)) {
             return { validTargets: [], isActive: false, maxTargets: 0 };
@@ -146,9 +128,6 @@ export class Skill {
 
         if (isPlayerManual) {
             try {
-                // If maxTargets > 1, we might need a multi-select UI, 
-                // but for now requestPlayerTarget returns single.
-                // Assuming manual is usually single target for this UI.
                 const target = await context.requestPlayerTarget(validTargets);
                 return target ? [target] : [];
             } catch (e) {
@@ -157,14 +136,10 @@ export class Skill {
         }
 
         // 2. Random/Auto Strategy (Default/AI)
-        // "The target number always equal to the maximum number."
-
-        // If we have fewer candidates than max, take them all.
         if (validTargets.length <= maxTargets) {
             return validTargets;
         }
 
-        // Otherwise, use Selection Strategy (Random by default) to pick `maxTargets`
         return this.selectTargetsStrat(validTargets, maxTargets, context);
     }
 
@@ -193,11 +168,8 @@ export class Skill {
     static ApplyDamage(targets, amount, context, options = {}) {
         if (!Array.isArray(targets)) targets = [targets];
 
-        // Priority: Explicit source > context.source (from event) > context.user (actor)
-        // This handles Reflect/Counter cases where actor != source of damage
         const source = options.source || context.source || context.user;
 
-        // We allow modification of 'amount' via the event payload.
         const payload = { targets, amount, context, type: 'DAMAGE', source };
         bus.emit('Skill:CausingDamage', payload);
 
@@ -208,7 +180,6 @@ export class Skill {
 
             let actualDamage = finalAmount;
 
-            // Mitigation: Defense blocks damage.
             if (target.defense >= actualDamage) {
                 bus.emit('Skill:Immute', { target, damage: actualDamage, defense: target.defense });
                 bus.emit('Skill:CausingDefense', { target, amount: target.defense });
@@ -274,6 +245,7 @@ export class Skill {
             }
         });
     }
+
     // --- FACTORY (Phase 2) ---
 
     /**
@@ -282,8 +254,6 @@ export class Skill {
      * @returns {Skill}
      */
     static generate(config) {
-        // config = { id, name, type, logic: { ... }, execution: { ... }, targeting: { ... } }
-
         const { id, name, type, description, trigger, limitPerTurn, logic = {}, execution = {}, targeting = {} } = config;
 
         // 1. Build checkConditions strategy
@@ -317,7 +287,6 @@ export class Skill {
 
             // Logic: Rank/First Check
             if (logic.onlyFirst && !context.isFirst) return false;
-            // if (logic.rank && context.turnRank !== logic.rank) return false;
 
             return true;
         };
@@ -348,16 +317,11 @@ export class Skill {
                 let amt = execution.damage.amount || 0;
                 if (execution.damage.scaleWithDice) amt = dice;
 
-                // We allow modification of 'amount' via the event payload.
                 const payload = { targets, amount: amt, context, type: 'DAMAGE' };
-                console.log(`[Skill] Emitting Skill:CausingDamage with amount: ${amt}`);
                 bus.emit('Skill:CausingDamage', payload);
-                console.log(`[Skill] After Emit, amount is: ${payload.amount}`);
-
-                const finalAmount = payload.amount;
 
                 // execution.damage can also imply a "target" override if we wanted, but sticking to simple for now
-                const dmgs = Skill.ApplyDamage(targets, amt, context);
+                Skill.ApplyDamage(targets, amt, context);
                 // Simple logging for first target or aggregate
                 logParts.push(`Dealt ${amt} DMG.`);
             }
@@ -407,11 +371,6 @@ export class Skill {
             return { log: `${name}: ${logParts.join(' ')}` };
         };
 
-
-
-        // Apply new props after creation (since we just passed them to constructor via 'new Skill' but the object construction in 'generate' was manual before? 
-        // No, 'new Skill' takes 'data'. We need to make sure we pass 'trigger' and 'limitPerTurn' to it.
-        // The return below constructs 'new Skill' with the object. Let's add them there.
         return new Skill({
             id,
             name,
@@ -423,7 +382,8 @@ export class Skill {
             maxTargets,
             checkConditions,
             getTargets,
-            execute
+            execute,
+            animation: config.animation // Pass animation key
         });
     }
 
@@ -453,13 +413,10 @@ export class Skill {
     static Revive(targets) {
         if (!Array.isArray(targets)) targets = [targets];
         targets.forEach(target => {
-            // Only revive if dead? Or full heal? 
-            // "Fully heal (reset the health attribute)" usually implies setting to max.
             if (target.hp <= 0) {
                 target.hp = target.maxHp;
                 bus.emit('Skill:Revived', { target });
             } else {
-                // If already alive, maybe just full heal?
                 target.hp = target.maxHp;
             }
         });

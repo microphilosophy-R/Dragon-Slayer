@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dices, Skull, Zap, Heart, Shield, Swords } from 'lucide-react';
+import { Dices, Skull, Zap, Heart, Shield, Swords, FastForward, Play, SkipForward } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 import { CharacterStack } from '../components/ui/CharacterStack';
@@ -30,6 +30,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     // --- STATE ---
     const [turnPhase, setTurnPhase] = useState('INIT'); // INIT, PLAYER_ACT, RESOLVING, ENEMY_ACT, END
     const [battleRound, setBattleRound] = useState(1);
+    const [gameSpeed, setGameSpeed] = useState('NORMAL'); // 'NORMAL', 'FULL', 'SKIP'
     const [battleLog, setBattleLog] = useState(["Battle Started!"]);
     const [diceValue, setDiceValue] = useState(0);
     const [diceHistory, setDiceHistory] = useState([]);
@@ -152,6 +153,14 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     };
 
     const handleCardClick = (char) => {
+        if (!char) {
+            // If explicitly deselecting (char is null), just clear selection unless targeting is active
+            if (!targetingState?.active) {
+                setSelectedCharacter(null);
+            }
+            return;
+        }
+
         if (targetingState?.active) {
             // Check if valid candidate
             const isValid = targetingState.candidates.find(c => c.id === char.id);
@@ -170,11 +179,11 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         const enemyAlive = currentFactions[1].livingMembers.length > 0;
 
         if (!enemyAlive) {
-            setTimeout(onWin, 1500);
+            setTimeout(onWin, gameSpeed === 'SKIP' ? 100 : 1500);
             return true;
         }
         if (!playerAlive || battleRound > 30) {
-            setTimeout(onLose, 1500);
+            setTimeout(onLose, gameSpeed === 'SKIP' ? 100 : 1500);
             return true;
         }
         return false;
@@ -191,6 +200,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         bus.emit('Round:Start', { round: battleRound });
 
         setTurnPhase('RESOLVING');
+        setSelectedCharacter(null); // Clear any selection from reading skills
 
         // 1. Snapshot State (Clone) to ensure proper mutation tracking
         // We use an internal variable `currentFactions` to track state across the async steps.
@@ -202,12 +212,13 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         addLog(`${currentFactions[0].name} Turn (Dice: ${roll})`);
 
         // Wait a bit for effect
-        await new Promise(r => setTimeout(r, 600));
+        if (gameSpeed !== 'SKIP') await new Promise(r => setTimeout(r, 600));
 
         const res1 = await Combat.processMainTurn(currentFactions, playerFactionId, roll, {
             history: diceHistory,
             memory,
-            requestPlayerTarget
+            requestPlayerTarget,
+            gameSpeed
         });
 
         // Update Logs & State
@@ -219,7 +230,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
 
         // --- ENEMY TURN ---
         setTurnPhase('ENEMY_WAIT');
-        await new Promise(r => setTimeout(r, 1000));
+        if (gameSpeed !== 'SKIP') await new Promise(r => setTimeout(r, 1000));
 
         const enemyRoll = rollDice();
         // Update dice UI for enemy?
@@ -233,7 +244,8 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
             history: newHistory,
             memory,
             // Enemy doesn't use manual targeting, but pass it just in case of weird skills
-            requestPlayerTarget
+            requestPlayerTarget,
+            gameSpeed
         });
 
         res2.logs.forEach(l => addLog(l));
@@ -246,6 +258,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         bus.emit('Round:End', { round: battleRound });
         setBattleRound(r => r + 1);
         setTurnPhase('PLAYER_WAIT_ROLL');
+        setSelectedCharacter(null); // Clear any selection from reading skills
         addLog(`=== Round ${battleRound + 1} === `);
     };
 
@@ -271,6 +284,30 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                 <div className="flex gap-4 items-center flex-shrink-0">
                     <h2 className="text-xl font-serif text-amber-500">Round {battleRound}</h2>
                     <div className="text-sm text-stone-400 font-mono">{turnPhase}</div>
+                </div>
+                {/* Game Speed Control */}
+                <div className="flex gap-1 bg-black/40 p-1 rounded border border-stone-800">
+                    <button
+                        onClick={() => setGameSpeed('NORMAL')}
+                        className={`p-1.5 rounded hover:bg-stone-700 transition-colors ${gameSpeed === 'NORMAL' ? 'bg-amber-900/50 text-amber-200' : 'text-stone-500'}`}
+                        title="Normal Speed"
+                    >
+                        <Play size={16} fill="currentColor" />
+                    </button>
+                    <button
+                        onClick={() => setGameSpeed('FULL')}
+                        className={`p-1.5 rounded hover:bg-stone-700 transition-colors ${gameSpeed === 'FULL' ? 'bg-amber-900/50 text-amber-200' : 'text-stone-500'}`}
+                        title="Full Animation"
+                    >
+                        <FastForward size={16} fill="currentColor" />
+                    </button>
+                    <button
+                        onClick={() => setGameSpeed('SKIP')}
+                        className={`p-1.5 rounded hover:bg-stone-700 transition-colors ${gameSpeed === 'SKIP' ? 'bg-amber-900/50 text-amber-200' : 'text-stone-500'}`}
+                        title="Skip Animations"
+                    >
+                        <SkipForward size={16} fill="currentColor" />
+                    </button>
                 </div>
             </div>
 

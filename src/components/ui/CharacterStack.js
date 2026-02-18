@@ -26,6 +26,12 @@ export const CharacterStack = ({ characters, selectedId, onSelect, activeId, tar
     };
 
     const handleCardClick = (char) => {
+        // If targeting is active, we don't want to deselect by clicking the same card
+        if (targetingState?.active) {
+            onSelect(char);
+            return;
+        }
+
         if (selectedId === char.id) {
             onSelect(null); // Deselect if already selected
         } else {

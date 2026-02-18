@@ -19,6 +19,7 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
 
     return (
         <div
+            id={`char-card-${char.id}`}
             onClick={onClick}
             className={`
                 relative flex flex-col items-center gap-2 p-5 border-4 transition-all duration-200 cursor-pointer h-[28rem] w-64 flex-shrink-0
@@ -31,7 +32,7 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
                     ? 'ring-4 ring-amber-400 z-10 shadow-[0_0_20px_rgba(251,191,36,0.6)]'
                     : ''
                 }
-                ${char.hp <= 0 ? 'opacity-40 grayscale' : ''}
+                ${char.hp <= 0 ? 'opacity-40 grayscale pointer-events-none' : ''}
                 ${isActive ? 'animate-action-pulse border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)] z-20' : ''}
                 ${char.animationClass || ''}
             `}

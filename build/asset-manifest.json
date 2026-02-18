@@ -1,23 +1,23 @@
 {
   "files": {
-    "main.css": "/static/css/main.9464d1f2.css",
-    "main.js": "/static/js/main.30f2c4bb.js",
-    "static/js/336.2b6afe24.chunk.js": "/static/js/336.2b6afe24.chunk.js",
-    "static/media/hero_portrait.png": "/static/media/hero_portrait.139aabc75d538f0e31ad.png",
-    "static/media/cursor.png": "/static/media/cursor.e48e5722ebe67aaa55c6.png",
-    "static/media/dice4.png": "/static/media/dice4.996cc19cc5aaeab6d4e2.png",
-    "static/media/dice1.png": "/static/media/dice1.cd9b4e8af38626c6a1a3.png",
-    "static/media/dice2.png": "/static/media/dice2.fe5ef17456beacde9b23.png",
-    "static/media/dice6.png": "/static/media/dice6.34f3d89ae58e6c60aa3f.png",
-    "static/media/dice3.png": "/static/media/dice3.185b1503eafc9dbcc46d.png",
-    "static/media/dice5.png": "/static/media/dice5.70767fb61703175c797f.png",
-    "index.html": "/index.html",
-    "main.9464d1f2.css.map": "/static/css/main.9464d1f2.css.map",
-    "main.30f2c4bb.js.map": "/static/js/main.30f2c4bb.js.map",
-    "336.2b6afe24.chunk.js.map": "/static/js/336.2b6afe24.chunk.js.map"
+    "main.css": "/Dragon-Slayer/static/css/main.f2494baf.css",
+    "main.js": "/Dragon-Slayer/static/js/main.c2a0c329.js",
+    "static/js/336.2b6afe24.chunk.js": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js",
+    "static/media/hero_portrait.png": "/Dragon-Slayer/static/media/hero_portrait.139aabc75d538f0e31ad.png",
+    "static/media/cursor.png": "/Dragon-Slayer/static/media/cursor.e48e5722ebe67aaa55c6.png",
+    "static/media/dice4.png": "/Dragon-Slayer/static/media/dice4.996cc19cc5aaeab6d4e2.png",
+    "static/media/dice1.png": "/Dragon-Slayer/static/media/dice1.cd9b4e8af38626c6a1a3.png",
+    "static/media/dice2.png": "/Dragon-Slayer/static/media/dice2.fe5ef17456beacde9b23.png",
+    "static/media/dice6.png": "/Dragon-Slayer/static/media/dice6.34f3d89ae58e6c60aa3f.png",
+    "static/media/dice3.png": "/Dragon-Slayer/static/media/dice3.185b1503eafc9dbcc46d.png",
+    "static/media/dice5.png": "/Dragon-Slayer/static/media/dice5.70767fb61703175c797f.png",
+    "index.html": "/Dragon-Slayer/index.html",
+    "main.f2494baf.css.map": "/Dragon-Slayer/static/css/main.f2494baf.css.map",
+    "main.c2a0c329.js.map": "/Dragon-Slayer/static/js/main.c2a0c329.js.map",
+    "336.2b6afe24.chunk.js.map": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.9464d1f2.css",
-    "static/js/main.30f2c4bb.js"
+    "static/css/main.f2494baf.css",
+    "static/js/main.c2a0c329.js"
   ]
 }

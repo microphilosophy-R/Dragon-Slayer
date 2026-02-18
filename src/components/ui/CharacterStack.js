@@ -4,15 +4,23 @@ import { CharacterCard } from './CharacterCard';
 export const CharacterStack = ({ characters, selectedId, onSelect, activeId, targetingState }) => {
     const [hoveredId, setHoveredId] = useState(null);
     const containerRef = useRef(null);
+    const contentRef = useRef(null);
 
     const handleMouseMove = (e) => {
-        if (!containerRef.current || characters.length === 0) return;
+        if (!contentRef.current || characters.length === 0) return;
 
-        const rect = containerRef.current.getBoundingClientRect();
+        const rect = contentRef.current.getBoundingClientRect();
+
+        // Check if mouse is within visual bounds of the stack
+        if (e.clientX < rect.left || e.clientX > rect.right) {
+            setHoveredId(null);
+            return;
+        }
+
         const x = e.clientX - rect.left;
 
-        // Calculate which index the mouse is over (0 to length-1)
-        // We use the full width of the container for the "scrollbar" effect
+        // Calculate which index the mouse is over
+        // Use the actual visual width of the content div
         const totalWidth = rect.width;
         const sectionWidth = totalWidth / characters.length;
         const index = Math.floor(x / sectionWidth);
@@ -32,8 +40,20 @@ export const CharacterStack = ({ characters, selectedId, onSelect, activeId, tar
             return;
         }
 
-        if (selectedId === char.id) {
-            onSelect(null); // Deselect if already selected
+        // Check if currently selected (scalar or array)
+        const isCurrentlySelected = Array.isArray(selectedId)
+            ? selectedId.includes(char.id)
+            : selectedId === char.id;
+
+        if (isCurrentlySelected) {
+            // If handling array, the parent likely handles toggle via onSelect parameters
+            // But if generic onSelect(null) is expected for scalar deselect:
+            if (!Array.isArray(selectedId)) {
+                onSelect(null);
+            } else {
+                // For array mode, we still fire onSelect(char) and let parent toggle
+                onSelect(char);
+            }
         } else {
             onSelect(char);
         }
@@ -48,25 +68,27 @@ export const CharacterStack = ({ characters, selectedId, onSelect, activeId, tar
 
     return (
         <div
-            className="flex items-center justify-center h-full w-full px-4 overflow-x-auto" // Enable scroll on parent if estimates fail
+            className="flex items-center justify-center w-full px-4 overflow-x-auto no-scrollbar min-h-[36rem]" // Increased height for scale clearance
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             ref={containerRef}
         >
             <div
-                className="flex flex-row items-center relative h-full isolate transition-all duration-300"
+                className="flex flex-row items-center relative isolate transition-all duration-300 py-10"
                 style={{ minWidth: minContainerWidth }}
+                ref={contentRef}
             >
                 {characters.map((char, index) => {
-                    const isSelected = selectedId === char.id;
+                    const isSelected = Array.isArray(selectedId)
+                        ? selectedId.includes(char.id)
+                        : selectedId === char.id;
                     const isHovered = hoveredId === char.id;
                     const isActive = activeId === char.id;
                     const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
 
-                    // Determine z-index: Selected/Hovered on top
-                    // Base z-index increases with index to stack properly
-                    let zIndex = index * 10;
-                    if (isHovered) zIndex += 1000; // Hovered always on top
+                    // Reverse z-index so leftmost cards are in front
+                    let zIndex = (characters.length - index) * 10;
+                    if (isHovered) zIndex = 1000; // Hovered always on top
                     if (isSelected && !hoveredId) zIndex += 100; // Selected on top if not hovering others
 
                     // Determine scale/transform

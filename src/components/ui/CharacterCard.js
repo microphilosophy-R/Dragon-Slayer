@@ -38,7 +38,7 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
             `}
         >
             {/* Profile Image */}
-            <div className="w-24 h-24 bg-stone-950 border-2 border-stone-600 rounded-full overflow-hidden relative shadow-lg shrink-0 mt-2">
+            <div className="w-28 h-28 bg-stone-950 border-2 border-stone-600 overflow-hidden relative shadow-lg shrink-0 mt-2">
                 <img
                     src={char.profile}
                     alt={char.name}

@@ -10,8 +10,7 @@
   }
 
   .cursor-medieval {
-    /* Change './images/mouse.png' to your new image path */
-    cursor: url('./images/mouse.png'), auto;
+    cursor: url('images/cursor.png'), auto;
   }
 
   .font-log {

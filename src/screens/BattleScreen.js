@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dices, Skull, Zap, Heart, Shield, Swords } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
-import { CharacterStrip } from '../components/ui/CharacterStrip';
+import { CharacterStack } from '../components/ui/CharacterStack';
 import { ActionSequence } from '../systems/ActionSequence';
 import { ActionOrderBar } from '../components/ui/ActionOrderBar';
 import { Combat } from '../systems/Combat';
@@ -275,39 +275,32 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
             </div>
 
             {/* BATTLE ARENA */}
-            <div className={`flex-1 grid grid-cols-1 md:grid-cols-${Math.min(factions.length, 4)} gap-4 mb-4 overflow-hidden`}>
+            {/* BATTLE ARENA */}
+            <div className={`flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 overflow-hidden px-4`}>
                 {factions.map((faction, idx) => {
                     const isPlayer = faction.type === 'PLAYER';
                     return (
                         <div
                             key={faction.id}
                             className={`
-                                flex flex-col h-full rounded-lg border-2 p-3 overflow-hidden transition-colors duration-300
+                                flex flex-col h-full rounded-lg border-2 p-3 overflow-hidden transition-colors duration-300 relative
                                 ${isPlayer ? 'bg-stone-900/60' : 'bg-red-950/20'}
                                 border-${faction.color}
                             `}
                         >
-                            <div className={`mb-3 font-serif flex justify-between items-center ${isPlayer ? 'text-stone-300' : 'text-red-900/70'}`}>
-                                <h3 className="font-bold">{faction.name}</h3>
-                                {isPlayer ? <Swords size={16} /> : <Skull size={16} />}
+                            <div className={`mb-3 font-serif flex justify-between items-center ${isPlayer ? 'text-stone-300' : 'text-red-900/70'} absolute top-2 left-4 right-4 z-0`}>
+                                <h3 className="font-bold text-lg opacity-50">{faction.name}</h3>
+                                {isPlayer ? <Swords size={20} className="opacity-50" /> : <Skull size={20} className="opacity-50" />}
                             </div>
 
-                            <div className="flex-1 flex flex-row gap-4 overflow-x-auto pb-2 px-1 items-stretch">
-                                {faction.characters.map(char => {
-                                    const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
-                                    const isSelected = selectedCharacter?.id === char.id;
-                                    const isActive = activeCharacterId === char.id;
-                                    return (
-                                        <CharacterStrip
-                                            key={char.id}
-                                            char={char}
-                                            isSelected={isSelected}
-                                            isTargetable={isTargetable}
-                                            isActive={isActive}
-                                            onClick={() => handleCardClick(char)}
-                                        />
-                                    )
-                                })}
+                            <div className="flex-1 flex items-center justify-center mt-6">
+                                <CharacterStack
+                                    characters={faction.characters}
+                                    activeId={activeCharacterId}
+                                    selectedId={selectedCharacter?.id}
+                                    onSelect={(char) => handleCardClick(char)}
+                                    targetingState={targetingState}
+                                />
                             </div>
                         </div>
                     );

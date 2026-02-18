@@ -3,7 +3,8 @@ import { StartScreen } from './screens/StartScreen';
 import { CastleScreen } from './screens/CastleScreen';
 import { BattleScreen } from './screens/BattleScreen';
 import { Player } from './systems/Player';
-import mouseIcon from './images/mouse.png';
+// Fix cursor import
+import mouseIcon from './images/cursor.png';
 
 export default function App() {
     const [scenario, setScenario] = useState(0);

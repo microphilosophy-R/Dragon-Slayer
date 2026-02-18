@@ -3,7 +3,7 @@ import React from 'react';
 import { Tent, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
-import { CharacterStrip } from '../components/ui/CharacterStrip';
+import { CharacterCard } from '../components/ui/CharacterCard';
 
 export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) => {
     const toggleSelection = (charId) => {
@@ -25,9 +25,9 @@ export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) 
                     <Button onClick={onEmbark} disabled={gameState.activeTeam.length === 0} primary className="w-auto px-6 py-2 text-sm">Embark <ArrowRight size={16} /></Button>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 overflow-y-auto pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 overflow-y-auto pb-20 justify-items-center">
                 {gameState.roster.map(char => (
-                    <CharacterStrip
+                    <CharacterCard
                         key={char.id}
                         char={char}
                         isSelected={gameState.activeTeam.includes(char.id)}

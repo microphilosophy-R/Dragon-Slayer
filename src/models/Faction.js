@@ -1,9 +1,10 @@
 export class Faction {
-    constructor(id, type, name, characters = []) {
+    constructor(id, type, name, characters = [], color = 'stone-500') {
         this.id = id;
         this.type = type; // 'PLAYER' or 'COMPUTER'
         this.name = name;
         this.characters = characters; // Array of Character objects
+        this.color = color; // Tailwind color prefix e.g. 'amber-500' or hex
         this.characters.forEach(c => c.faction = this);
     }
 

@@ -57,14 +57,14 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
             return new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
         });
         // Use 'PLAYER' type to distinguish user control
-        const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances);
+        const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances, 'amber-600');
 
         // 2. Build Enemy Faction from Level Data
         const currentLevel = LEVELS[gameState.level] || LEVELS[1];
         const enemyInstances = currentLevel.enemyFactionData.members.map(e =>
             new Character({ ...e, tempSpeed: e.speed, defense: 0 })
         );
-        const enemyFaction = new Faction('enemy_faction', 'COMPUTER', currentLevel.enemyFactionData.factionName, enemyInstances);
+        const enemyFaction = new Faction('enemy_faction', 'COMPUTER', currentLevel.enemyFactionData.factionName, enemyInstances, 'red-600');
 
         setFactions([playerFaction, enemyFaction]);
         setTurnPhase('PLAYER_WAIT_ROLL');
@@ -97,8 +97,25 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
             const { bus } = require('../systems/EventBus');
             const onActionStart = ({ characterId }) => {
                 setActiveCharacterId(characterId);
-                // Auto-clear after a short duration if no End event (though Turn:End handles it mostly)
-                // But actions are fast. Let's keep it highlighted until next one or turn end.
+
+                // Trigger Animation
+                setFactions(prevFactions => {
+                    const nextFactions = [...prevFactions];
+                    for (const f of nextFactions) {
+                        const char = f.characters.find(c => c.id === characterId);
+                        if (char) {
+                            // Set animation class temporarily
+                            char.animationClass = 'animate-attack-lunge';
+                            setTimeout(() => {
+                                char.animationClass = ''; // Clear after animation
+                                // Force re-render if needed, or rely on next state update
+                                setFactions([...nextFactions]);
+                            }, 300);
+                            break;
+                        }
+                    }
+                    return nextFactions;
+                });
             };
 
             // Clear on Turn/Round updates to be safe
@@ -255,11 +272,6 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                     <h2 className="text-xl font-serif text-amber-500">Round {battleRound}</h2>
                     <div className="text-sm text-stone-400 font-mono">{turnPhase}</div>
                 </div>
-
-                {/* Action Order Bar */}
-                <div className="flex-1 overflow-hidden">
-                    <ActionOrderBar factions={factions} activeCharacterId={activeCharacterId} />
-                </div>
             </div>
 
             {/* BATTLE ARENA */}
@@ -270,8 +282,9 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                         <div
                             key={faction.id}
                             className={`
-                                flex flex-col h-full rounded-lg border p-3 overflow-hidden
-                                ${isPlayer ? 'bg-stone-900/60 border-stone-700' : 'bg-red-950/20 border-red-900/30'}
+                                flex flex-col h-full rounded-lg border-2 p-3 overflow-hidden transition-colors duration-300
+                                ${isPlayer ? 'bg-stone-900/60' : 'bg-red-950/20'}
+                                border-${faction.color}
                             `}
                         >
                             <div className={`mb-3 font-serif flex justify-between items-center ${isPlayer ? 'text-stone-300' : 'text-red-900/70'}`}>
@@ -279,7 +292,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                                 {isPlayer ? <Swords size={16} /> : <Skull size={16} />}
                             </div>
 
-                            <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1">
+                            <div className="flex-1 flex flex-row gap-4 overflow-x-auto pb-2 px-1 items-stretch">
                                 {faction.characters.map(char => {
                                     const isTargetable = targetingState?.active && targetingState.candidates.find(c => c.id === char.id);
                                     const isSelected = selectedCharacter?.id === char.id;
@@ -301,12 +314,17 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                 })}
             </div>
 
+            {/* ACTION ORDER BAR (Under Character Strips) */}
+            <div className="mb-4 overflow-hidden border-y border-stone-800 py-2 bg-black/20">
+                <ActionOrderBar factions={factions} activeCharacterId={activeCharacterId} />
+            </div>
+
             {/* CONTROL PANEL */}
 
             {/* CONTROL PANEL & DICE AREA */}
-            <div className="h-48 flex gap-4 relative">
-                <div className="w-1/3 flex flex-col justify-center gap-3">
-                    {/* Status / Prompt */}
+            <div className="h-48 flex gap-4 items-stretch">
+                {/* 1. STATUS / PROMPT (Left) */}
+                <div className="flex-1 flex flex-col justify-center gap-3">
                     <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded bg-black/40">
                         {targetingState?.active ? (
                             <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
@@ -318,27 +336,43 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                     </div>
                 </div>
 
-                {/* DICE CONTAINER - BOTTOM CENTER ABSOLUTE/OVERLAY */}
-                {(turnPhase === 'PLAYER_WAIT_ROLL' || diceValue > 0) && (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex flex-col items-center z-50">
-                        {turnPhase === 'PLAYER_WAIT_ROLL' ? (
-                            <Button primary icon={Dices} onClick={handlePlayerRoll} className="h-20 w-48 text-xl shadow-xl shadow-amber-900/20 animate-bounce">
-                                ROLL
-                            </Button>
-                        ) : (
-                            <div className="flex flex-col items-center animate-drop-bounce">
-                                <div className="w-24 h-24 bg-stone-900 border-4 border-amber-600 rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.4)] overflow-hidden bg-black">
-                                    <img
-                                        src={DICE_IMAGES[diceValue] || DICE_IMAGES[1]}
-                                        alt={`Dice ${diceValue}`}
-                                        className="w-full h-full object-contain"
-                                    />
+                {/* 2. DICE CONTAINER (Center) */}
+                <div className="flex-none w-64 flex flex-col items-center justify-center relative">
+                    {(turnPhase === 'PLAYER_WAIT_ROLL' || diceValue > 0) ? (
+                        <>
+                            {turnPhase === 'PLAYER_WAIT_ROLL' ? (
+                                <Button primary icon={Dices} onClick={handlePlayerRoll} className="h-20 w-48 text-xl shadow-xl shadow-amber-900/20 animate-bounce">
+                                    ROLL
+                                </Button>
+                            ) : (
+                                <div className="flex flex-col items-center animate-drop-bounce">
+                                    <div className={`px-3 py-1 ${turnPhase === 'ENEMY_WAIT' ? 'bg-red-900 text-red-100 border-red-500' : 'bg-amber-900 text-amber-100 border-amber-500'} rounded-full text-xs mb-2 border font-bold tracking-wider shadow-lg`}>
+                                        {turnPhase === 'ENEMY_WAIT' ? enemyFaction.name.toUpperCase() : playerFaction.name.toUpperCase()} TURN
+                                    </div>
+                                    <div className={`w-24 h-24 bg-stone-900 border-4 border-${turnPhase === 'ENEMY_WAIT' ? (enemyFaction.color || 'red-600') : (playerFaction.color || 'amber-600')} rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.4)] overflow-hidden bg-black`}>
+                                        <img
+                                            src={DICE_IMAGES[diceValue] || DICE_IMAGES[1]}
+                                            alt={`Dice ${diceValue}`}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="text-stone-700 text-sm">Waiting...</div>
+                    )}
+                </div>
+
+                {/* 3. BATTLE LOG (Right) */}
+                <div className="flex-1 bg-black/40 border border-stone-800 rounded p-2 overflow-y-auto font-mono text-xs text-stone-400" ref={logRef}>
+                    {battleLog.map((log, i) => (
+                        <div key={i} className="mb-1 border-b border-stone-800/50 pb-1 last:border-0">
+                            {log}
+                        </div>
+                    ))}
+                </div>
+            </div >
+        </div >
     );
 };

@@ -2,14 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {}
+
 @layer utilities {
   .font-serif {
     font-family: 'Cinzel', serif;
   }
 
   .cursor-medieval {
+    /* Change './images/mouse.png' to your new image path */
     cursor: url('./images/mouse.png'), auto;
   }
+
+  .font-log {
+    font-family: 'Roboto Flex', 'Roboto', sans-serif;
+  }
+}
+
+/* Custom "Bananas" Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1c1917;
+  /* stone-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d97706;
+  /* amber-600 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b45309;
+  /* amber-700 */
 }
 
 @keyframes drop-bounce {
@@ -49,10 +78,54 @@
   }
 }
 
+@keyframes attack-lunge {
+  0% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(20px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes hit-shake {
+  0% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
+
+  75% {
+    transform: translateX(-5px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
 .animate-drop-bounce {
   animation: drop-bounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .animate-action-pulse {
   animation: action-pulse 1.5s infinite;
+}
+
+.animate-attack-lunge {
+  animation: attack-lunge 0.3s ease-out;
+}
+
+.animate-hit-shake {
+  animation: hit-shake 0.4s ease-in-out;
 }

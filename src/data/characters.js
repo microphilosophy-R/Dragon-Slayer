@@ -1,4 +1,6 @@
 import { Character } from '../models/Character';
+import merlinPortrait from '../images/merlin_portrait.png';
+import arthurPortrait from '../images/arthur_portrait.png';
 
 export const CHARACTERS = {
     // --- HEROES ---
@@ -11,7 +13,7 @@ export const CHARACTERS = {
         speed: 6,
         skills: ['merlin_offensive', 'merlin_passive_cancel'],
         description: 'A powerful wizard who can shift through space.',
-        profile: 'src/images/merlin_portrait.png'
+        profile: merlinPortrait
     },
     arthur: {
         id: 'arthur',
@@ -21,7 +23,8 @@ export const CHARACTERS = {
         maxHp: 7,
         speed: 4,
         skills: ['arthur_offensive', 'arthur_defensive'],
-        description: 'The righteous king with a holy aura.'
+        description: 'The righteous king with a holy aura.',
+        profile: arthurPortrait
     },
     archer: {
         id: 'archer',

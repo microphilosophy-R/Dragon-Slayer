@@ -1,6 +1,7 @@
+
 import { CHARACTERS, getCharacter } from '../data/characters';
 import { FACTIONS } from '../data/factions';
-import { Faction } from '../models/Faction';
+import { SharpDagger, GuardianShield, VampireFang } from '../data/equipment';
 
 export class Player {
     /**
@@ -8,19 +9,17 @@ export class Player {
      * @returns {Object} New game state
      */
     static createInitialState() {
-        // Instantiate the Player Faction
-        // User wants "Use Faction" - we should probably store the Faction object or at least the data to recreate it.
-        // App.js usually stores `roster` (array of Characters). 
-        // If we want to use Faction properly, maybe `gameState.playerFaction`?
-        // But for now, let's keep `roster` as the source of truth for "All unlocked heroes", 
-        // and Faction is created for Battle. 
-        // OR: gameState SHOULD hold the Faction object?
-        // "let us create a faction.js to include... And under system.js, please add a Player.js to handle all the operations..."
-
-        // Let's stick to generating the roster array for now, but sourced from FACTIONS.
-
         const initialRosterIds = FACTIONS.PLAYER.roster;
         const roster = initialRosterIds.map(id => getCharacter(id));
+
+        // Initial Inventory
+        const inventory = [
+            new SharpDagger(),
+            new GuardianShield(),
+            new VampireFang(),
+            new SharpDagger(), // Extra for testing
+            new GuardianShield()
+        ];
 
         return {
             level: 1,
@@ -28,6 +27,7 @@ export class Player {
             lastEventLevel: 0,
             roster: roster,
             activeTeam: [...FACTIONS.PLAYER.initialTeam],
+            inventory: inventory, // New: Inventory
             castleFacilities: {
                 mainHall: { level: 1 },
                 expeditionOffice: { level: 1 }
@@ -41,22 +41,19 @@ export class Player {
      * @returns {Object} Updated state
      */
     static processVictory(currentState) {
-        // Logic for leveling up, adding gold, etc.
-        // For now, mirroring previous App.js logic: Level + 1
         return {
             ...currentState,
             level: currentState.level + 1,
-            gold: currentState.gold + 50 // Example reward
+            gold: currentState.gold + 50
         };
     }
 
     /**
      * Processes defeat conditions.
      * @param {Object} currentState 
-     * @returns {Object} Updated state (or triggers game over handling in UI)
+     * @returns {Object} Updated state
      */
     static processDefeat(currentState) {
-        // Just return state, maybe flag logic
         return currentState;
     }
 }

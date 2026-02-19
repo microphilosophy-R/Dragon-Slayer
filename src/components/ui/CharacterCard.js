@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Heart, Zap, Sword, Info, Sparkles, Eye, Flame, Swords } from 'lucide-react';
 import { SKILL_CABINET } from '../../data/skills';
 
-export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActive, compact = false }) => {
+export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActive, compact = false, onDrop, onUnequip }) => {
     let skills = [];
     if (typeof char.getSkills === 'function') {
         skills = char.getSkills();
@@ -36,6 +36,18 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
                 ${isActive ? 'animate-action-pulse border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.5)] z-20' : ''}
                 ${char.animationClass || ''}
             `}
+            onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = '#f59e0b'; // Amber-500
+            }}
+            onDragLeave={(e) => {
+                e.currentTarget.style.borderColor = ''; // Reset
+            }}
+            onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderColor = ''; // Reset
+                if (onDrop) onDrop(e, char);
+            }}
         >
             {/* Profile Image */}
             <div className="w-32 h-40 bg-stone-950 border-2 border-stone-600 overflow-hidden relative shadow-lg shrink-0 mt-2">
@@ -65,15 +77,41 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
                 </div>
 
                 {/* Equipment Row */}
-                <div className="flex gap-1 overflow-x-auto no-scrollbar w-full justify-center min-h-[24px] shrink-0">
+                <div className="flex gap-1 overflow-x-auto no-scrollbar w-full justify-center min-h-[32px] shrink-0 px-2">
                     {char.equipment && char.equipment.length > 0 ? (
                         char.equipment.map((item, idx) => (
-                            <div key={idx} title={item.name} className="w-6 h-6 bg-stone-800 rounded border border-stone-600 flex items-center justify-center relative hover:border-amber-500 transition-colors group">
-                                <div className="w-3 h-3 bg-stone-500 rounded-sm" />
+                            <div
+                                key={idx}
+                                title={`${item.name}\n${item.description}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onUnequip) onUnequip(item);
+                                }}
+                                className={`
+                                    w-8 h-8 rounded border flex items-center justify-center relative transition-all group shrink-0
+                                    ${item.type === 'WEAPON' ? 'bg-red-900/30 border-red-500/50' : ''}
+                                    ${item.type === 'ARMOR' ? 'bg-blue-900/30 border-blue-500/50' : ''}
+                                    ${item.type === 'ACCESSORY' ? 'bg-amber-900/30 border-amber-500/50' : ''}
+                                    ${onUnequip ? 'hover:bg-red-900/80 cursor-alias' : 'cursor-help'}
+                                `}
+                            >
+                                {/* Simple Icon rep */}
+                                {item.type === 'WEAPON' && <Sword size={14} className="text-red-300" />}
+                                {item.type === 'ARMOR' && <Shield size={14} className="text-blue-300" />}
+                                {item.type === 'ACCESSORY' && <Zap size={14} className="text-amber-300" />}
+
+                                {/* Unequip Overlay Hint */}
+                                {onUnequip && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 rounded">
+                                        <span className="text-[10px] text-red-400 font-bold">X</span>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
-                        <span className="text-[10px] text-stone-600 italic">No Equipment</span>
+                        <div className="w-full text-center border border-dashed border-stone-800 rounded py-1">
+                            <span className="text-[10px] text-stone-600 italic">Drag Equipment Here</span>
+                        </div>
                     )}
                 </div>
 

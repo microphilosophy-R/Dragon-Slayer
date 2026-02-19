@@ -24,13 +24,13 @@ export const ItemCard = ({ item, isEquipped, onClick, showEquipStatus = false })
             onClick={onClick}
             title={item.description}
             className={`
-                relative flex flex-col items-center justify-center p-2 border-2 rounded bg-stone-900/80 
+                relative flex flex-col items-center justify-center gap-1 p-2 border-2 rounded bg-stone-900/80 
                 w-24 h-32 cursor-grab active:cursor-grabbing hover:bg-stone-800 transition-all group shrink-0
                 ${border}
                 ${isEquipped ? 'opacity-50 grayscale' : 'hover:scale-105 shadow-lg'}
             `}
         >
-            <div className={`mb-2 p-2 rounded-full bg-stone-950 border border-stone-800 ${color}`}>
+            <div className={`p-2 rounded-full bg-stone-950 border border-stone-800 ${color}`}>
                 <Icon size={24} />
             </div>
 

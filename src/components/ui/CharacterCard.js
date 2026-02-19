@@ -22,7 +22,7 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
             id={`char-card-${char.id}`}
             onClick={onClick}
             className={`
-                relative flex flex-col items-center gap-2 p-5 border-4 transition-all duration-200 cursor-pointer h-[28rem] w-64 flex-shrink-0
+                relative flex flex-col items-center gap-2 p-5 border-4 transition-all duration-200 cursor-pointer h-[32rem] w-64 flex-shrink-0
                 bg-stone-900/95 hover:bg-stone-800
                 ${isSelected
                     ? 'border-amber-500 bg-amber-950/40 shadow-xl'
@@ -143,7 +143,7 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
 
                                 {/* Description: Only show if selected, with scrollbar if needed */}
                                 {isSelected && (
-                                    <div className="text-[10px] text-stone-500 leading-tight max-h-[80px] overflow-y-auto pr-1">
+                                    <div className="text-[10px] text-stone-500 leading-tight max-h-[100px] overflow-y-auto pr-1">
                                         {skill.description}
                                     </div>
                                 )}

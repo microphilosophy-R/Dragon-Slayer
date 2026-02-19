@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Tent, ArrowRight, X, ChevronLeft, ChevronRight, Grid, List, AlignJustify, Users, Package } from 'lucide-react';
+import { Tent, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight, Grid, List, AlignJustify, Users, Package } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { CharacterCard } from '../components/ui/CharacterCard';
 import { ItemCard } from '../components/ui/ItemCard';
@@ -141,10 +141,10 @@ export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) 
     };
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-stone-950 overflow-hidden animate-fade-in-up font-serif">
+        <div className="flex-1 flex flex-col h-full bg-stone-950 overflow-y-auto overflow-x-hidden animate-fade-in-up font-serif selection:bg-amber-900/50">
 
             {/* --- GLOBAL HEADER --- */}
-            <div className="h-20 flex justify-between items-center px-8 bg-stone-900 border-b-2 border-amber-900/50 shadow-2xl shrink-0 z-50 relative">
+            <div className="h-20 flex justify-between items-center px-8 bg-stone-900 border-b-2 border-amber-900/50 shadow-2xl shrink-0 z-50 sticky top-0">
                 <div className="flex flex-col">
                     <h1 className="text-3xl font-bold text-amber-100 flex items-center gap-3 tracking-wide drop-shadow-md">
                         <Tent className="text-amber-500 stroke-2" size={28} />
@@ -154,24 +154,30 @@ export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) 
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <Button onClick={onBack} className="w-auto px-6 py-2 border border-stone-600 bg-stone-800 text-stone-300 hover:text-stone-100 hover:bg-stone-700 shadow-lg rounded-sm transition-all hover:-translate-y-0.5">
-                        Back to Camp
+                    <Button onClick={onBack} className="w-40 px-8 h-14 border border-stone-600 bg-stone-800 text-stone-300 hover:text-stone-100 hover:bg-stone-700 shadow-lg rounded-sm transition-all hover:-translate-y-0.5">
+                        <div className="flex items-center gap-2">
+                            <span>Back</span>
+                            <ArrowLeft size={20} strokeWidth={3} />
+                        </div>
                     </Button>
                     <Button
                         onClick={onEmbark}
                         disabled={gameState.activeTeam.length === 0}
                         primary
-                        className="w-auto px-8 py-2 text-lg font-bold shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-500/50 rounded-sm transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                        className="w-40 px-8 h-14 text-lg font-bold shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] border border-amber-500/50 rounded-sm transition-all hover:-translate-y-0.5 flex items-center gap-2"
                     >
-                        EMBARK <ArrowRight size={20} strokeWidth={3} />
+                        <div className="flex items-center gap-2">
+                            <span>EMBARK</span>
+                            <ArrowRight size={20} strokeWidth={3} />
+                        </div>
                     </Button>
                 </div>
             </div>
 
-            {/* --- ROW 1: CHARACTERS (Flex Grow) --- */}
-            <div className="flex-1 flex flex-col min-h-0 relative">
+            {/* --- ROW 1: CHARACTERS (Flex Grow, Min Height for Cards) --- */}
+            <div className="flex-1 flex flex-col min-h-[500px] relative">
                 {/* Row Header */}
-                <div className="flex justify-between items-center px-8 py-4 bg-stone-900/90 border-b border-stone-800/80 backdrop-blur-md z-20 shadow-lg">
+                <div className="flex justify-between items-center px-8 py-4 bg-stone-900/90 border-b border-stone-800/80 backdrop-blur-md z-20 shadow-lg sticky top-0">
                     <div className="flex items-center gap-4">
                         <div className="bg-gradient-to-br from-stone-700 to-stone-900 p-2 rounded shadow-inner border border-stone-600 text-amber-500">
                             <Users size={20} />
@@ -187,34 +193,40 @@ export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) 
                         <div className="flex items-center gap-3">
                             <Button
                                 onClick={handleUnselectAll}
-                                className="h-9 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-stone-400 hover:text-red-400 hover:border-red-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
+                                className="w-40 h-16 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-stone-400 hover:text-red-400 hover:border-red-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
                                 title="Unselect All Heroes"
                             >
-                                <X size={14} className="mr-2" /> CLEAR SELECTION
+                                <div className="flex items-center gap-2">
+                                    <X size={20} />
+                                    <span>CLEAR</span>
+                                </div>
                             </Button>
 
                             <div className="w-px h-8 bg-stone-800 mx-2" />
 
                             <Button
-                                onClick={() => setCharPageSize(prev => prev === 7 ? 4 : (prev === 4 ? 9 : 7))}
-                                className="h-9 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-amber-500 hover:text-amber-300 hover:border-amber-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
+                                onClick={() => setCharPageSize(prev => prev === 6 ? 4 : (prev === 4 ? 9 : 6))}
+                                className="w-40 h-16 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-amber-500 hover:text-amber-300 hover:border-amber-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
                                 title="Toggle Grid Size"
                             >
-                                <Grid size={14} className="mr-2" /> VIEW: {charPageSize}
+                                <div className="flex items-center gap-2">
+                                    <Grid size={18} />
+                                    <span>SLOTS: {charPageSize}</span>
+                                </div>
                             </Button>
                         </div>
 
                         {/* Pagination Group */}
                         <div className="flex items-center gap-1 bg-stone-950/50 rounded p-1 border border-stone-800/50 shadow-inner">
-                            <Button onClick={() => setCharPage(p => Math.max(0, p - 1))} disabled={charPage === 0} className="w-8 h-8 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-amber-500"><ChevronLeft size={18} /></Button>
+                            <Button onClick={() => setCharPage(p => Math.max(0, p - 1))} disabled={charPage === 0} className="w-6 h-14 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-amber-500"><ChevronLeft size={18} /></Button>
                             <span className="text-stone-300 text-sm font-mono font-bold min-w-[3rem] text-center">{charPage + 1} / {Math.max(1, charPages)}</span>
-                            <Button onClick={() => setCharPage(p => Math.min(charPages - 1, p + 1))} disabled={charPage >= charPages - 1} className="w-8 h-8 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-amber-500"><ChevronRight size={18} /></Button>
+                            <Button onClick={() => setCharPage(p => Math.min(charPages - 1, p + 1))} disabled={charPage >= charPages - 1} className="w-6 h-14 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-amber-500"><ChevronRight size={18} /></Button>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900/40 via-stone-950 to-stone-950 flex items-center justify-center relative shadow-inner">
+                <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-900/40 via-stone-950 to-stone-950 flex items-center justify-center relative shadow-inner min-h-[460px]">
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'linear-gradient(45deg, #1c1917 25%, transparent 25%), linear-gradient(-45deg, #1c1917 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1c1917 75%), linear-gradient(-45deg, transparent 75%, #1c1917 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px' }}></div>
 
@@ -258,18 +270,21 @@ export const ExpeditionOffice = ({ gameState, setGameState, onEmbark, onBack }) 
                         <div className="flex items-center">
                             <Button
                                 onClick={() => setItemPageSize(prev => prev === 6 ? 4 : (prev === 4 ? 9 : 6))}
-                                className="h-8 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-blue-400 hover:text-blue-300 hover:border-blue-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
+                                className="flex items-center justify-center w-40 h-14 px-4 text-xs font-bold border border-stone-700 bg-stone-800 text-blue-400 hover:text-blue-300 hover:border-blue-900/50 hover:bg-stone-900 shadow-sm rounded-sm transition-all"
                                 title="Toggle Slot Size"
                             >
-                                <Grid size={14} className="mr-2" /> SLOTS: {itemPageSize}
+                                <div className="flex items-center gap-2">
+                                    <Grid size={20} className="mr-2" />
+                                    <span>SLOTS: {itemPageSize}</span>
+                                </div>
                             </Button>
                         </div>
 
                         {/* Pagination Group */}
                         <div className="flex items-center gap-1 bg-stone-950/50 rounded p-1 border border-stone-800/50 shadow-inner">
-                            <Button onClick={() => setItemPage(p => Math.max(0, p - 1))} disabled={itemPage === 0} className="w-7 h-7 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-blue-500"><ChevronLeft size={16} /></Button>
+                            <Button onClick={() => setItemPage(p => Math.max(0, p - 1))} disabled={itemPage === 0} className="w-6 h-14 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-blue-500"><ChevronLeft size={16} /></Button>
                             <span className="text-stone-300 text-xs font-mono font-bold min-w-[3rem] text-center">{itemPage + 1} / {Math.max(1, itemPages)}</span>
-                            <Button onClick={() => setItemPage(p => Math.min(itemPages - 1, p + 1))} disabled={itemPage >= itemPages - 1} className="w-7 h-7 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-blue-500"><ChevronRight size={16} /></Button>
+                            <Button onClick={() => setItemPage(p => Math.min(itemPages - 1, p + 1))} disabled={itemPage >= itemPages - 1} className="w-6 h-14 p-0 rounded hover:bg-stone-800 border-none text-stone-400 hover:text-blue-500"><ChevronRight size={16} /></Button>
                         </div>
                     </div>
                 </div>

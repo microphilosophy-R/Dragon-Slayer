@@ -9,7 +9,8 @@ export class Equipment {
         this.id = data.id;
         this.name = data.name;
         this.description = data.description;
-        this.type = data.type || 'WEAPON'; // WEAPON, ARMOR, ACCESSORY
+        this.type = data.type || 'WEAPON'; // WEAPON, ARMOR, ACCESSORY, LEGENDARY
+        this.rarity = data.rarity || 'COMMON'; // COMMON, RARE, LEGENDARY
 
         // Runtime ref
         this.equippedBy = null;

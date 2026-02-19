@@ -331,6 +331,61 @@ export const SKILL_CABINET = {
         }
     }),
 
+    // SIEGFRIED (Dragon Slayer)
+    "siegfried_offensive": new Skill({
+        id: "siegfried_offensive",
+        name: "Balmung",
+        type: "OFFENSIVE",
+        description: "4 DMG. If Dice is 6, deal 6 DMG.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        // logic: { dice: { min: 1 } }, // Always hits? Or standard hit chances? Assuming standard hit for now, or always hit.
+        // Let's assume it always hits if manually implemented, unless we verify logic.
+        // But since we want custom damage scaling:
+        checkConditions: (context) => true, // Always valid to cast? Or maybe min dice?
+        // Let's add standard miss chance implicitly? No, 'Balmung' sounds like it hits. 
+        // But most heavy attacks have a floor. Let's say it always hits for now to keep it simple, or maybe min 2?
+        // Prototype didn't specify hit chance, just "4 DMG".
+        getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
+        execute: (targets, context) => {
+            const dice = context.dice;
+            const damage = dice === 6 ? 6 : 4;
+            Skill.ApplyDamage(targets, damage, context);
+            return { log: `Siegfried swings Balmung! ${damage} DMG.` };
+        }
+    }),
+
+    "siegfried_passive": new Skill({
+        id: "siegfried_passive",
+        name: "Dragon Blood",
+        type: "DEFENSIVE",
+        description: "-1 DMG taken. WEAKNESS: If attacker rolled 1, take +2 DMG instead.",
+        trigger: "Skill:CausingDamage",
+        limitPerTurn: 99,
+        checkConditions: (context) => {
+            // Context is the event payload: { targets, amount, context: combatContext, ... }
+            // Trigger if We (Siegfried) are a target.
+            return context.targets && context.targets.some(t => t.id === context.user.id);
+        },
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            // context.context is the combat context from the Source of the damage
+            const attackerDice = context.context ? context.context.dice : 0;
+
+            if (attackerDice === 1) {
+                context.amount += 2;
+                return { log: "The Leaf Spot is hit! Dragon Blood fails (+2 DMG)." };
+            } else {
+                const original = context.amount;
+                context.amount = Math.max(0, context.amount - 1);
+                // Only log if it actually reduced damage
+                if (original > context.amount) {
+                    return { log: "Dragon Blood hardens (-1 DMG)." };
+                }
+                return { log: "Dragon Blood active (No reduction)." };
+            }
+        }
+    }),
+
     // --- NEW ENEMY SKILLS ---
 
     // SHADOW STALKER

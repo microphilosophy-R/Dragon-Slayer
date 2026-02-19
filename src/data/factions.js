@@ -4,7 +4,7 @@ export const FACTIONS = {
     PLAYER: {
         id: 'player_default',
         name: 'Expedition Team',
-        roster: ['merlin', 'arthur', 'archer', 'architect', 'elara', 'thorn'], // Extended Roster
+        roster: ['merlin', 'arthur', 'archer', 'architect', 'elara', 'thorn', 'siegfried'], // Extended Roster
         initialTeam: ['merlin', 'arthur', 'archer', 'architect']
     },
     ENEMIES: {

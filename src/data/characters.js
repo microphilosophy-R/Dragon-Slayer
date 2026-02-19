@@ -10,7 +10,8 @@ export const CHARACTERS = {
         maxHp: 4,
         speed: 6,
         skills: ['merlin_offensive', 'merlin_passive_cancel'],
-        description: 'A powerful wizard who can shift through space.'
+        description: 'A powerful wizard who can shift through space.',
+        profile: 'src/images/merlin_portrait.png'
     },
     arthur: {
         id: 'arthur',
@@ -105,6 +106,16 @@ export const CHARACTERS = {
         speed: 2,
         skills: ['thorn_defensive', 'thorn_passive'],
         description: 'A dwarven defender with spiked armor.'
+    },
+    siegfried: {
+        id: 'siegfried',
+        name: 'Siegfried',
+        role: 'Dragon Slayer',
+        hp: 9,
+        maxHp: 9,
+        speed: 5,
+        skills: ['siegfried_offensive', 'siegfried_passive'],
+        description: 'The tragic hero who bathed in dragon blood. Wields the cursed Balmung.'
     },
 
     // --- ENEMIES ---

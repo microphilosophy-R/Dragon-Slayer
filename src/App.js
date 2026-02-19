@@ -47,6 +47,12 @@ export default function App() {
           @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
           .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
 
+          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+          .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+          @keyframes bounce { 0%, 100% { transform: translateY(-10%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); } 50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); } }
+          .animate-bounce { animation: bounce 1s infinite; }
+
           /* Custom Cursor Logic */
           /* Apply to the container and all children to override specific element defaults */
           .cursor-medieval, .cursor-medieval * {

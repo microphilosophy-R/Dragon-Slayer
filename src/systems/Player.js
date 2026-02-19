@@ -25,6 +25,7 @@ export class Player {
         return {
             level: 1,
             gold: 100,
+            lastEventLevel: 0,
             roster: roster,
             activeTeam: [...FACTIONS.PLAYER.initialTeam],
             castleFacilities: {

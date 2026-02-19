@@ -14,15 +14,13 @@ export const MainHall = ({ gameState, setGameState, onBack }) => {
 
     // Initialize Event
     useEffect(() => {
-        if (!event && step === 'intro') {
+        // Only allow event if it hasn't happened yet this level
+        const canTriggerEvent = gameState.lastEventLevel !== gameState.level;
+        if (!event && step === 'intro' && canTriggerEvent) {
             const randomEvent = EVENTS[Math.floor(Math.random() * EVENTS.length)];
             setEvent(randomEvent);
         }
-    }, [step, event]);
-
-    const updateRoster = (newRoster) => {
-        setGameState(prev => ({ ...prev, roster: newRoster }));
-    };
+    }, [step, event, gameState.level, gameState.lastEventLevel]);
 
     const handleOptionClick = (option) => {
         if (option.type === 'target') {
@@ -49,9 +47,14 @@ export const MainHall = ({ gameState, setGameState, onBack }) => {
             setMessage(result.message);
         }
 
-        if (result.roster) {
-            updateRoster(result.roster);
-        }
+        // Update Game State: Always update lastEventLevel when an event is resolved
+        setGameState(prev => {
+            const newState = { ...prev, lastEventLevel: prev.level };
+            if (result.roster) {
+                newState.roster = result.roster;
+            }
+            return newState;
+        });
 
         setStep('result');
     };
@@ -68,18 +71,28 @@ export const MainHall = ({ gameState, setGameState, onBack }) => {
                 <div className="flex justify-center text-amber-600 mb-4"><Dices size={48} /></div>
 
                 {/* INTRO & CHOICE */}
-                {step === 'intro' && event && (
+                {step === 'intro' && (
                     <>
-                        <h2 className="text-3xl font-serif text-amber-100">{event.name}</h2>
-                        <p className="text-stone-400 italic">{event.description}</p>
+                        {event ? (
+                            <>
+                                <h2 className="text-3xl font-serif text-amber-100">{event.name}</h2>
+                                <p className="text-stone-400 italic">{event.description}</p>
 
-                        <div className="space-y-4 mt-6">
-                            {event.options.map((opt, idx) => (
-                                <Button key={idx} onClick={() => handleOptionClick(opt)}>
-                                    {opt.label}
-                                </Button>
-                            ))}
-                        </div>
+                                <div className="space-y-4 mt-6">
+                                    {event.options.map((opt, idx) => (
+                                        <Button key={idx} onClick={() => handleOptionClick(opt)}>
+                                            {opt.label}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4 py-8">
+                                <h2 className="text-3xl font-serif text-stone-600">The Hall is Quiet</h2>
+                                <p className="text-stone-500 italic">No more souls seek your attention at this depth.</p>
+                                <Button onClick={onBack} variant="secondary">Leave</Button>
+                            </div>
+                        )}
                     </>
                 )}
 

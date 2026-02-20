@@ -48,6 +48,23 @@ class EventBus {
     }
 
     /**
+     * Emit an event to all subscribers sequentially and asynchronously.
+     * @param {string} event 
+     * @param {Object} payload 
+     */
+    async emitAsync(event, payload = {}) {
+        if (!this.listeners[event]) return;
+
+        for (const handler of [...this.listeners[event]]) {
+            try {
+                await handler(payload);
+            } catch (e) {
+                console.error(`Error in async handler for event '${event}':`, e);
+            }
+        }
+    }
+
+    /**
      * Clears all listeners (Useful for testing/reset)
      */
     clear() {

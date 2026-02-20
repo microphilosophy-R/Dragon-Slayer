@@ -58,13 +58,13 @@ export class Character {
         // --- Event: Appearance ---
         if (!this.hasActed) {
             const { bus } = await import('../systems/EventBus');
-            bus.emit('Character:Appearance', { character: this, context });
+            await bus.emitAsync('Character:Appearance', { character: this, context });
             this.hasActed = true;
         }
 
         // Notify start of action for UI animation
         const { bus } = await import('../systems/EventBus');
-        bus.emit('Character:ActionStart', { characterId: this.id });
+        await bus.emitAsync('Character:ActionStart', { characterId: this.id });
 
         const results = [];
         // Determine mode based on context.activeFaction

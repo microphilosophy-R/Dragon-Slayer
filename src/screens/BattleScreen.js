@@ -214,7 +214,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         // We import dynamically to avoid circular deps if any, or just standard import. 
         // Better to verify if 'bus' is available. 
         const { bus } = await import('../systems/EventBus');
-        bus.emit('Round:Start', { round: battleRound });
+        await bus.emitAsync('Round:Start', { round: battleRound });
 
         setTurnPhase('RESOLVING');
         setSelectedCharacter(null); // Clear any selection from reading skills
@@ -272,7 +272,7 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         if (checkWinCondition(currentFactions)) return;
 
         // --- END ROUND ---
-        bus.emit('Round:End', { round: battleRound });
+        await bus.emitAsync('Round:End', { round: battleRound });
         setBattleRound(r => r + 1);
         setTurnPhase('PLAYER_WAIT_ROLL');
         setSelectedCharacter(null); // Clear any selection from reading skills
@@ -374,7 +374,10 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
                 <div className="flex-1 flex flex-col justify-center gap-3">
                     <div className="text-center text-stone-600 italic border border-stone-800 p-4 rounded bg-black/40">
                         {targetingState?.active ? (
-                            <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-amber-400 font-bold animate-pulse">Choose Target...</span>
+                                <Button onClick={() => targetingState.resolve(null)} className="bg-stone-700 hover:bg-stone-600 border-stone-600 text-xs px-2 py-1 h-auto text-stone-200">Skip Skill</Button>
+                            </div>
                         ) : (
                             turnPhase === 'ENEMY_WAIT' ? "Enemy is thinking..." :
                                 turnPhase === 'RESOLVING' ? "Resolving Combat..." :

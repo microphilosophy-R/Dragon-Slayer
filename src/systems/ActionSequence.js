@@ -7,11 +7,11 @@ export class ActionSequence {
      */
     static async resolveTurn(allFactions, activeFactionId, diceValue, extraContext = {}) {
         const { bus } = await import('./EventBus');
-        bus.emit('Turn:Start', { activeFactionId, diceValue });
-        bus.emit('Dice:Roll', { value: diceValue }); // Or maybe distinct if roll happened before? 
+        await bus.emitAsync('Turn:Start', { activeFactionId, diceValue });
+        await bus.emitAsync('Dice:Roll', { value: diceValue }); // Or maybe distinct if roll happened before? 
         // User asked for "the rolling of the dice" and "the result". 
         // Here we just have the result passed in. "Dice:Result" fits better.
-        bus.emit('Dice:Result', { value: diceValue });
+        await bus.emitAsync('Dice:Result', { value: diceValue });
 
         let turnLogs = [];
 
@@ -59,7 +59,7 @@ export class ActionSequence {
             }
         }
 
-        bus.emit('Turn:End', { activeFactionId });
+        await bus.emitAsync('Turn:End', { activeFactionId });
         return { logs: turnLogs };
     }
 }

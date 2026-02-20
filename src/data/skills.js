@@ -108,7 +108,7 @@ export const SKILL_CABINET = {
         name: "Collapse",
         type: "DEFENSIVE",
         description: "Deal DMG equal to Dice (Once per battle).",
-        targeting: { scope: 'ENEMIES', max: 1 },
+        targeting: { mode: 'MANUAL', scope: 'ENEMIES', max: 1 },
         logic: { dice: { min: 4 }, once: true },
         execution: { damage: { scaleWithDice: true } }
     }),
@@ -126,15 +126,15 @@ export const SKILL_CABINET = {
         animation: 'attacking',
         checkConditions: (context) => true,
         getTargets: (context) => Skill.ResolveScope('ENEMIES', context), // Use new standard scope
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             const t1 = targets[0];
             // Fix: t1.takeDamage -> Skill.ApplyDamage
-            Skill.ApplyDamage([t1], 1, context);
+            await Skill.ApplyDamage([t1], 1, context);
             let log = `Rebel attacks ${t1.name} (1 DMG).`;
 
             if (targets.length > 1) {
                 const t2 = targets[1];
-                Skill.ApplyDamage([t2], 2, context);
+                await Skill.ApplyDamage([t2], 2, context);
                 log += ` And frenzies on ${t2.name} (2 DMG)!`;
             }
             return { log };
@@ -150,12 +150,12 @@ export const SKILL_CABINET = {
         description: "Take 1 DMG to deal 1 DMG, unless dice is 1.",
         checkConditions: (context) => context.dice !== 1,
         getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             const target = targets[0];
             const user = context.user;
             // Fix: takeDamage -> ApplyDamage
-            Skill.ApplyDamage([target], 1, context);
-            Skill.ApplyDamage([user], 1, context);
+            await Skill.ApplyDamage([target], 1, context);
+            await Skill.ApplyDamage([user], 1, context);
             return { log: `Rebel attacks recklessly! 1 DMG to ${target.name}, 1 DMG to self.` };
         }
     }),
@@ -170,11 +170,11 @@ export const SKILL_CABINET = {
         maxTargets: (context) => context.dice === 6 ? 99 : 1,
         checkConditions: (context) => true,
         getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             const { dice } = context;
 
             // Fix: targets.forEach(takeDamage) -> Skill.ApplyDamage
-            Skill.ApplyDamage(targets, 2, context);
+            await Skill.ApplyDamage(targets, 2, context);
 
             if (dice === 6) {
                 return { log: `Dragon breathes fire! 2 DMG to ALL (${targets.length})!` };
@@ -335,8 +335,8 @@ export const SKILL_CABINET = {
         limitPerTurn: 99,
         checkConditions: (context) => context.target?.id === context.user.id && context.source,
         getTargets: (context) => [context.source],
-        execute: (targets, context) => {
-            Skill.ApplyDamage(targets, 1, context.context || {}, { source: context.user }); // Use context.context for combat context?
+        execute: async (targets, context) => {
+            await Skill.ApplyDamage(targets, 1, context.context || {}, { source: context.user }); // Use context.context for combat context?
             // Actually 'context' in execute for passive is the event payload. 
             // ApplyDamage needs a combat context for EventBus? 
             // In `Skill.js` ApplyDamage uses `bus` imported globally. 
@@ -362,10 +362,10 @@ export const SKILL_CABINET = {
         // But most heavy attacks have a floor. Let's say it always hits for now to keep it simple, or maybe min 2?
         // Prototype didn't specify hit chance, just "4 DMG".
         getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             const dice = context.dice;
             const damage = dice === 6 ? 6 : 4;
-            Skill.ApplyDamage(targets, damage, context);
+            await Skill.ApplyDamage(targets, damage, context);
             return { log: `Siegfried swings Balmung! ${damage} DMG.` };
         }
     }),
@@ -456,10 +456,10 @@ export const SKILL_CABINET = {
             return context.target && context.target.id === context.user.id && context.source;
         },
         getTargets: (context) => [context.source], // Target the attacker
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             // Case A: Standard Counter. I (context.user) am hitting back.
             // Implicit Source: context.user (Me).
-            Skill.ApplyDamage(targets, 1, context);
+            await Skill.ApplyDamage(targets, 1, context);
             return { log: `${context.user.name} counters! 1 DMG to ${targets[0].name}.` };
         }
     }),
@@ -474,10 +474,10 @@ export const SKILL_CABINET = {
         limitPerTurn: 1,
         checkConditions: (context) => context.target?.id === context.user.id && context.source,
         getTargets: (context) => [context.source],
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             // Explicitly stating 'source: context.user' ensures I am the damage dealer.
             // Even if ApplyDamage defaults to this, being explicit documents intent.
-            Skill.ApplyDamage(targets, 2, context, { source: context.user });
+            await Skill.ApplyDamage(targets, 2, context, { source: context.user });
             return { log: `${context.user.name} ripostes! 2 DMG.` };
         }
     }),
@@ -492,11 +492,11 @@ export const SKILL_CABINET = {
         limitPerTurn: 1,
         checkConditions: (context) => context.target?.id === context.user.id && context.source,
         getTargets: (context) => [context.source],
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             // We attribute the damage AS IF it came from the attacker themselves.
             // This might trigger the attacker's own "Protection from Self" or bypass "Protection from Enemies".
             // It prevents the Reflector from triggering "On Hit" effects (like Life Steal) because they didn't technically "hit".
-            Skill.ApplyDamage(targets, context.amount, context, { source: context.source });
+            await Skill.ApplyDamage(targets, context.amount, context, { source: context.source });
             return { log: `${context.user.name}'s Mirror Shield reflects ${context.amount} DMG back to ${targets[0].name}!` };
         }
     }),
@@ -511,12 +511,12 @@ export const SKILL_CABINET = {
         limitPerTurn: 1,
         checkConditions: (context) => context.target?.id === context.user.id && context.source,
         getTargets: (context) => [context.source],
-        execute: (targets, context) => {
+        execute: async (targets, context) => {
             // Attributes damage to a neutral/external source.
             // Neither the User nor the Attacker is the source.
             // Useful for environmental effects or true damage that shouldn't trigger specific counters.
             const fateEntity = { id: 'fate', name: 'Fate' };
-            Skill.ApplyDamage(targets, 3, context, { source: fateEntity });
+            await Skill.ApplyDamage(targets, 3, context, { source: fateEntity });
             return { log: `${targets[0].name} suffers 3 DMG from Karmic Retribution.` };
         }
     })

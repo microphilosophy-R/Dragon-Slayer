@@ -80,7 +80,7 @@ export class Skill {
             await AnimationSkill.play(this.animation, user, selectedTargets, context);
         }
 
-        return this.execute(user, context, selectedTargets);
+        return await this.execute(user, context, selectedTargets);
     }
 
     /**
@@ -164,68 +164,78 @@ export class Skill {
      * @param {Character[]} targets 
      * @param {number} amount 
      * @param {Object} context 
-     * @returns {number[]} Array of actual damage taken per target.
+     * @returns {Promise<number[]>} Array of actual damage taken per target.
      */
-    static ApplyDamage(targets, amount, context, options = {}) {
+    static async ApplyDamage(targets, amount, context, options = {}) {
         if (!Array.isArray(targets)) targets = [targets];
 
         const source = options.source || context.source || context.user;
 
         const payload = { targets, amount, context, type: 'DAMAGE', source };
-        bus.emit('Skill:CausingDamage', payload);
+        await bus.emitAsync('Skill:CausingDamage', payload);
 
         const finalAmount = payload.amount;
 
-        return targets.map(target => {
-            if (target.hp <= 0) return 0;
+        const results = [];
+        for (const target of targets) {
+            if (target.hp <= 0) {
+                results.push(0);
+                continue;
+            }
 
             let actualDamage = finalAmount;
 
             if (target.defense >= actualDamage) {
-                bus.emit('Skill:Immute', { target, damage: actualDamage, defense: target.defense });
-                bus.emit('Skill:CausingDefense', { target, amount: target.defense });
+                await bus.emitAsync('Skill:Immute', { target, damage: actualDamage, defense: target.defense });
+                await bus.emitAsync('Skill:CausingDefense', { target, amount: target.defense });
                 actualDamage = 0;
             }
             target.defense = 0; // Reset defense
 
             if (actualDamage > 0) {
-                bus.emit('Skill:TakeDamage', { target, amount: actualDamage, source: source });
+                await bus.emitAsync('Skill:TakeDamage', { target, amount: actualDamage, source: source });
             }
 
             target.hp = Math.max(0, target.hp - actualDamage);
 
             if (target.hp <= 0) {
-                bus.emit('Character:Die', { character: target });
+                await bus.emitAsync('Character:Die', { character: target });
             }
 
-            return actualDamage;
-        });
+            results.push(actualDamage);
+        }
+        return results;
     }
 
     /**
      * Heals a list of targets.
      * @param {Character[]} targets 
      * @param {number} amount 
-     * @returns {number[]} Array of actual healed amounts.
+     * @returns {Promise<number[]>} Array of actual healed amounts.
      */
-    static Heal(targets, amount) {
+    static async Heal(targets, amount) {
         if (!Array.isArray(targets)) targets = [targets];
 
-        bus.emit('Skill:CausingHeal', { targets, amount });
+        await bus.emitAsync('Skill:CausingHeal', { targets, amount });
 
-        return targets.map(target => {
-            if (target.hp <= 0) return 0;
+        const results = [];
+        for (const target of targets) {
+            if (target.hp <= 0) {
+                results.push(0);
+                continue;
+            }
             const oldHp = target.hp;
             const healed = Math.min(target.maxHp, target.hp + amount) - oldHp;
 
             target.hp += healed;
 
             if (healed > 0) {
-                bus.emit('Skill:GetHealed', { target, amount: healed });
+                await bus.emitAsync('Skill:GetHealed', { target, amount: healed });
             }
 
-            return healed;
-        });
+            results.push(healed);
+        }
+        return results;
     }
 
     /**
@@ -234,17 +244,17 @@ export class Skill {
      * @param {string} stat - 'speed', 'defense', etc.
      * @param {number} amount 
      */
-    static ModifyStat(targets, stat, amount) {
+    static async ModifyStat(targets, stat, amount) {
         if (!Array.isArray(targets)) targets = [targets];
 
-        targets.forEach(target => {
+        for (const target of targets) {
             if (stat === 'speed') {
                 target.tempSpeed += amount;
             } else if (stat === 'defense') {
                 target.defense += amount;
-                bus.emit('Skill:GetDefense', { target, amount });
+                await bus.emitAsync('Skill:GetDefense', { target, amount });
             }
-        });
+        }
     }
 
     // --- FACTORY (Phase 2) ---
@@ -309,7 +319,7 @@ export class Skill {
         const maxTargets = targeting.max || 1;
 
         // 4. Build execute strategy
-        const execute = (targets, context) => {
+        const execute = async (targets, context) => {
             const { dice, memory } = context;
             const logParts = [];
 
@@ -319,10 +329,10 @@ export class Skill {
                 if (execution.damage.scaleWithDice) amt = dice;
 
                 const payload = { targets, amount: amt, context, type: 'DAMAGE' };
-                bus.emit('Skill:CausingDamage', payload);
+                await bus.emitAsync('Skill:CausingDamage', payload);
 
                 // execution.damage can also imply a "target" override if we wanted, but sticking to simple for now
-                Skill.ApplyDamage(targets, amt, context);
+                await Skill.ApplyDamage(targets, amt, context);
                 // Simple logging for first target or aggregate
                 logParts.push(`Dealt ${amt} DMG.`);
             }
@@ -330,14 +340,14 @@ export class Skill {
             // Effect: Heal
             if (execution.heal) {
                 const amt = execution.heal.amount || 0;
-                Skill.Heal(targets, amt);
+                await Skill.Heal(targets, amt);
                 logParts.push(`Healed ${amt}.`);
             }
 
             // Effect: Stat Mod
             if (execution.buff) {
                 const { stat, amount } = execution.buff;
-                Skill.ModifyStat(targets, stat, amount);
+                await Skill.ModifyStat(targets, stat, amount);
                 logParts.push(`${stat} ${amount > 0 ? '+' : ''}${amount}.`);
             }
 
@@ -361,10 +371,9 @@ export class Skill {
             // Increment turn count
             memory[`${id}_turn_count`] = (memory[`${id}_turn_count`] || 0) + 1;
 
-
             // Speed debuff special case (Archer)
             if (execution.meta && execution.meta.speedDebuffIfFirst && context.isFirst) {
-                Skill.ModifyStat([context.user], 'speed', -1);
+                await Skill.ModifyStat([context.user], 'speed', -1);
                 logParts.push("(Speed -1)");
             }
 

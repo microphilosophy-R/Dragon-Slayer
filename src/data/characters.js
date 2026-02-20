@@ -39,6 +39,7 @@ export const CHARACTERS = {
         speed: 8,
         skills: ['archer_offensive', 'archer_defensive'], // Fixed ID from 'archer_trap' to standard naming if exists, or alias
         description: 'A master marksman.',
+        profile: archerPortrait,
         score: 3.17,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },

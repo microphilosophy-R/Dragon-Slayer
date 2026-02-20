@@ -106,3 +106,12 @@ This document contains visual prompts for all characters in Dragon Slayer, categ
 ### Archfiend Azazel (demon_lord)
 **Prompt:** An epic dark fantasy oil painting focusing on the Demon Lord's massive, terrifying bust. Rendered in the style of 19th-century Mythological Realism meets Dark Souls aesthetics. Intense chiaroscuro lighting with brilliant highlights of hellfire and deep, abyssal shadows. The demon's obsidian skin, massive curved horns, and spiked infernal armor are rendered with extreme, terrifying detail. Set within a ruined keep surrounded by swirling embers and volcanic ash. Its expression projects supreme absolute malice. Rich, heavy impasto brushwork for environmental effects and smooth, blended sfumato for the core forms. 8k resolution, visible canvas grain. Vertical portrait, 3:4 aspect ratio (w-48 h-64), centered framing. Fullfill the canvas, do not leave blank spacing or add frames.
 **Filename:** `demon_lord_portrait.png`
+
+---
+
+## Environment Assets
+*Style: 16:9 Aspect Ratio, Dark Medieval Fantasy, Environment Design.*
+
+### The Castle Map (castle_map)
+**Prompt:** An epic dark fantasy oil painting of a sprawling medieval castle complex viewed from a high isometric or top-down perspective (2D game map style). The castle is situated on a rocky crag surrounded by dark pine forests. It includes a massive central Keep, a Gothic Temple with stained glass, a grand Great Hall, sturdy Barracks, sprawling Stables, and glowing Workshops with smokestacks, all enclosed by a massive outer Wall and Gatehouse. Intense chiaroscuro lighting with dramatic shadows and glowing warm light from windows and torches. Rendered in the style of 19th-century Mythological Realism. Rich, impasto brushwork and smooth, blended sfumato for depth. 8k resolution, highly detailed map art. Horizontal layout, 16:9 aspect ratio.
+**Filename:** `castle_map_bg.png`

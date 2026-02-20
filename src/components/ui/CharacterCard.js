@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Heart, Zap, Sword, Info, Sparkles, Eye, Flame, Swords } from 'lucide-react';
 import { SKILL_CABINET } from '../../data/skills';
 
@@ -16,6 +16,12 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
     }
 
     const [hoveredSkill, setHoveredSkill] = useState(null);
+    const [imageError, setImageError] = useState(false);
+
+    // Reset error state when the profile source changes
+    useEffect(() => {
+        setImageError(false);
+    }, [char.profile]);
 
     return (
         <div
@@ -51,14 +57,17 @@ export const CharacterCard = ({ char, isSelected, onClick, isTargetable, isActiv
         >
             {/* Profile Image */}
             <div className="w-32 h-40 bg-stone-950 border-2 border-stone-600 overflow-hidden relative shadow-lg shrink-0 mt-2">
-                <img
-                    src={char.profile}
-                    alt={char.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.target.style.display = 'none' }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-stone-600 font-bold text-3xl -z-10 bg-stone-900">
-                    {char.name.substring(0, 2).toUpperCase()}
+                {!imageError && char.profile ? (
+                    <img
+                        key={char.profile}
+                        src={char.profile}
+                        alt={char.name}
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                    />
+                ) : null}
+                <div className={`absolute inset-0 flex items-center justify-center text-stone-600 font-bold text-3xl -z-10 bg-stone-900 ${(!char.profile || imageError) ? 'z-0' : '-z-10'}`}>
+                    {char.name ? char.name.substring(0, 2).toUpperCase() : '??'}
                 </div>
             </div>
 

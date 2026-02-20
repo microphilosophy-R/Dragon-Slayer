@@ -15,6 +15,8 @@ export class Skill {
         this.maxTargets = data.maxTargets || 1; // Default to single target
         this.trigger = data.trigger || 'ACTION_PHASE'; // Default to active skill behavior
         this.limitPerTurn = data.limitPerTurn !== undefined ? data.limitPerTurn : 1; // Default 1 for safety
+        this.ev = data.ev || 0; // Mathematical Expected Value
+        this.evaluationTime = data.evaluationTime || null; // Date of last EV review
 
 
         // --- Logic Strategies (Injected Behavior) ---
@@ -23,10 +25,9 @@ export class Skill {
         this.getTargetsStrat = data.getTargets || (() => []);
         // Selection Strategy (Step 2 Helper): Default to random if no strategy provided but selection needed.
         this.selectTargetsStrat = data.selectTargets || ((candidates, max) => {
-            // Default: Pick random candidates up to max
-            // Shuffle
-            const shuffled = [...candidates].sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, max);
+            // Default: Prioritize character with least HP, up to max targets
+            const sorted = [...candidates].sort((a, b) => a.hp - b.hp);
+            return sorted.slice(0, max);
         });
         this.executeStrat = data.execute || (() => ({ log: 'No effect', actions: [] }));
         this.animation = data.animation; // New property

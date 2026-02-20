@@ -3,7 +3,7 @@ import React from 'react';
 import { Skull, Sword, Save, Crown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
-export const StartScreen = ({ onStartGame, onLoadGame, onLegacy }) => {
+export const StartScreen = ({ onStartGame, onLoadGame, hasSave, onLegacy }) => {
     return (
         <div className="relative h-screen w-full bg-stone-950 overflow-hidden flex flex-col items-center justify-center p-4">
             <div className="absolute inset-0 opacity-10 pointer-events-none"
@@ -28,7 +28,7 @@ export const StartScreen = ({ onStartGame, onLoadGame, onLegacy }) => {
                 </div>
                 <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                     <Button onClick={onStartGame} primary icon={Sword}>NEW EXPEDITION</Button>
-                    <Button onClick={onLoadGame} disabled icon={Save}>RESUME CHRONICLE</Button>
+                    <Button onClick={onLoadGame} disabled={!hasSave} icon={Save}>RESUME CHRONICLE</Button>
                     <Button onClick={onLegacy} disabled icon={Crown}>ANCESTRAL LEGACY</Button>
                 </div>
                 <div className="pt-12 text-stone-600 text-xs font-serif italic animate-fade-in-up" style={{ animationDelay: '0.4s' }}>

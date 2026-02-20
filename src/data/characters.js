@@ -8,12 +8,14 @@ export const CHARACTERS = {
         id: 'merlin',
         name: 'Merlin',
         role: 'Wizard',
-        hp: 4,
-        maxHp: 4,
-        speed: 6,
+        hp: 6,
+        maxHp: 6,
+        speed: 8,
         skills: ['merlin_offensive', 'merlin_passive_cancel'],
         description: 'A powerful wizard who can shift through space.',
-        profile: merlinPortrait
+        profile: merlinPortrait,
+        score: 3.66,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     arthur: {
         id: 'arthur',
@@ -21,10 +23,12 @@ export const CHARACTERS = {
         role: 'Knight',
         hp: 7,
         maxHp: 7,
-        speed: 4,
+        speed: 3,
         skills: ['arthur_offensive', 'arthur_defensive'],
         description: 'The righteous king with a holy aura.',
-        profile: arthurPortrait
+        profile: arthurPortrait,
+        score: 3.05,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     archer: {
         id: 'archer',
@@ -34,17 +38,21 @@ export const CHARACTERS = {
         maxHp: 5,
         speed: 8,
         skills: ['archer_offensive', 'archer_defensive'], // Fixed ID from 'archer_trap' to standard naming if exists, or alias
-        description: 'A master marksman.'
+        description: 'A master marksman.',
+        score: 3.17,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     architect: {
         id: 'architect',
         name: 'Royal Architect',
         role: 'Support',
-        hp: 4,
-        maxHp: 4,
+        hp: 8,
+        maxHp: 8,
         speed: 1,
         skills: ['architect_offensive', 'architect_defensive'], // Fixed IDs
-        description: 'Builds and destroys fortifications.'
+        description: 'Builds and destroys fortifications.',
+        score: 3.11,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
 
     // --- STANDARD HEROES (Generated) ---
@@ -54,9 +62,11 @@ export const CHARACTERS = {
         role: 'Knight',
         hp: 8,
         maxHp: 8,
-        speed: 3,
+        speed: 1,
         skills: ['std_heavy_strike', 'std_shield_bash'],
-        description: 'A deeply armored shock trooper.'
+        description: 'A deeply armored shock trooper.',
+        score: 3.11,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     lyra: {
         id: 'lyra',
@@ -66,7 +76,9 @@ export const CHARACTERS = {
         maxHp: 5,
         speed: 7,
         skills: ['std_quick_jab', 'std_wide_sweep'],
-        description: 'A swift blade in the shadows.'
+        description: 'A swift blade in the shadows.',
+        score: 2.94,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     sylas: {
         id: 'sylas',
@@ -76,7 +88,9 @@ export const CHARACTERS = {
         maxHp: 5,
         speed: 2,
         skills: ['std_group_heal', 'std_inner_focus'],
-        description: 'Heals wounds and braces for impact.'
+        description: 'Heals wounds and braces for impact.',
+        score: 1.83,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     grom: {
         id: 'grom',
@@ -86,7 +100,9 @@ export const CHARACTERS = {
         maxHp: 10,
         speed: 5,
         skills: ['std_heavy_strike', 'std_berserk'],
-        description: 'A warrior who trades defense for power.'
+        description: 'A warrior who trades defense for power.',
+        score: 5.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
 
     // --- NEW HEROES ---
@@ -98,27 +114,33 @@ export const CHARACTERS = {
         maxHp: 5,
         speed: 9,
         skills: ['elara_offensive', 'elara_passive'],
-        description: 'A nightblade who dances with shadows.'
+        description: 'A nightblade who dances with shadows.',
+        score: 2.54,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     thorn: {
         id: 'thorn',
         name: 'Thorn Bristlebeard',
         role: 'Tank',
-        hp: 12,
-        maxHp: 12,
-        speed: 2,
+        hp: 8,
+        maxHp: 8,
+        speed: 1,
         skills: ['thorn_defensive', 'thorn_passive'],
-        description: 'A dwarven defender with spiked armor.'
+        description: 'A dwarven defender with spiked armor.',
+        score: 3.11,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
     siegfried: {
         id: 'siegfried',
         name: 'Siegfried',
         role: 'Dragon Slayer',
-        hp: 9,
-        maxHp: 9,
-        speed: 5,
+        hp: 6,
+        maxHp: 6,
+        speed: 4,
         skills: ['siegfried_offensive', 'siegfried_passive'],
-        description: 'The tragic hero who bathed in dragon blood. Wields the cursed Balmung.'
+        description: 'The tragic hero who bathed in dragon blood. Wields the cursed Balmung.',
+        score: 6.66,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     },
 
     // --- ENEMIES ---

@@ -11,6 +11,8 @@ export class Character {
         this.speed = data.speed;
         this.tempSpeed = data.speed; // Runtime speed
         this.defense = data.defense || 0;
+        this.score = data.score || 0; // Calculated Power Score
+        this.evaluationTime = data.evaluationTime || null; // Date of last balance evaluation
         this.faction = null; // Reference to Faction object
 
         // Skills (Array of IDs or Objects)ted: Faction -> Characters -> Skills

@@ -6,10 +6,10 @@ export const SKILL_CABINET = {
         id: "merlin_offensive",
         name: "Fireball",
         type: "OFFENSIVE",
-        description: "4 DMG if dice is 6.",
+        description: "6 DMG if dice is 6. /* EV: 1.0 */",
         targeting: { mode: 'MANUAL', max: 1, scope: 'ENEMIES' },
         logic: { dice: { exact: 6 } },
-        execution: { damage: { amount: 4 } },
+        execution: { damage: { amount: 6 } },
         animation: 'attacking'
     }),
 
@@ -50,10 +50,10 @@ export const SKILL_CABINET = {
         id: "arthur_offensive",
         name: "Righteous Strike",
         type: "OFFENSIVE",
-        description: "1 DMG if dice >= 4.",
+        description: "2 DMG if dice >= 4. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES' },
         logic: { dice: { min: 4 } },
-        execution: { damage: { amount: 1 } },
+        execution: { damage: { amount: 2 } },
         animation: 'attacking'
     }),
 
@@ -85,10 +85,10 @@ export const SKILL_CABINET = {
         id: "archer_defensive",
         name: "Trap Setting",
         type: "DEFENSIVE",
-        description: "Deal 1 DMG to enemy if dice is Even.",
+        description: "Deal 2 DMG to enemy if dice is Even. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 1 },
         logic: { dice: { parity: 'even' } },
-        execution: { damage: { amount: 1 } }
+        execution: { damage: { amount: 2 } }
     }),
 
     // --- ARCHITECT ---
@@ -198,38 +198,46 @@ export const SKILL_CABINET = {
         id: "std_heavy_strike",
         name: "Heavy Strike",
         type: "OFFENSIVE",
-        description: "Deal 3 DMG if Dice >= 4.",
+        description: "Deal 3 DMG if Dice >= 5. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 1 },
-        logic: { dice: { min: 4 } },
-        execution: { damage: { amount: 3 } }
+        logic: { dice: { min: 5 } },
+        execution: { damage: { amount: 3 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_quick_jab": Skill.generate({
         id: "std_quick_jab",
         name: "Quick Jab",
         type: "OFFENSIVE",
-        description: "Deal 1 DMG.",
+        description: "Deal 1 DMG. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 1 },
         logic: {},
-        execution: { damage: { amount: 1 } }
+        execution: { damage: { amount: 1 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_shield_bash": Skill.generate({
         id: "std_shield_bash",
         name: "Shield Bash",
         type: "OFFENSIVE",
-        description: "Deal 2 DMG if Dice is Even.",
+        description: "Deal 2 DMG if Dice is Even. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 1 },
         logic: { dice: { parity: 'even' } },
-        execution: { damage: { amount: 2 } }
+        execution: { damage: { amount: 2 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_group_heal": Skill.generate({
         id: "std_group_heal",
         name: "Group Heal",
         type: "DEFENSIVE",
-        description: "Heal 1 HP to all allies if Dice is 6.",
-        targeting: { scope: 'ALLIES', max: 4 },
-        logic: { dice: { exact: 6 } },
+        description: "Heal 1 HP to 3 allies if Dice >= 5. /* EV: 1.0 */",
+        targeting: { scope: 'ALLIES', max: 3 },
+        logic: { dice: { min: 5 } },
         execution: { heal: { amount: 1 } },
-        animation: 'healing'
+        animation: 'healing',
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_berserk": Skill.generate({
         id: "std_berserk",
@@ -238,34 +246,42 @@ export const SKILL_CABINET = {
         description: "+2 Speed to Self (Once per battle).",
         targeting: { scope: 'SELF' },
         logic: { once: true },
-        execution: { buff: { stat: 'speed', amount: 2 } }
+        execution: { buff: { stat: 'speed', amount: 2 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_snipe": Skill.generate({
         id: "std_snipe",
         name: "Snipe",
         type: "OFFENSIVE",
-        description: "Deal 5 DMG if Dice is 6.",
+        description: "Deal 6 DMG if Dice is 6. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 1 },
         logic: { dice: { exact: 6 } },
-        execution: { damage: { amount: 5 } }
+        execution: { damage: { amount: 6 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_wide_sweep": Skill.generate({
         id: "std_wide_sweep",
         name: "Wide Sweep",
         type: "OFFENSIVE",
-        description: "Deal 1 DMG to 2 enemies if Dice >= 3.",
+        description: "Deal 1 DMG to 2 enemies if Dice is Even. /* EV: 1.0 */",
         targeting: { scope: 'ENEMIES', max: 2 },
-        logic: { dice: { min: 3 } },
-        execution: { damage: { amount: 1 } }
+        logic: { dice: { parity: 'even' } },
+        execution: { damage: { amount: 1 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
     "std_inner_focus": Skill.generate({
         id: "std_inner_focus",
         name: "Inner Focus",
         type: "DEFENSIVE",
-        description: "+1 Defense if Dice is Odd.",
+        description: "+4 Defense if Dice is Odd. /* EV: 1.0 */",
         targeting: { scope: 'SELF' },
         logic: { dice: { parity: 'odd' } },
-        execution: { buff: { stat: 'defense', amount: 1 } }
+        execution: { buff: { stat: 'defense', amount: 4 } },
+        ev: 1.0,
+        evaluationTime: '2026-02-20T11:24:11+08:00'
     }),
 
     // --- NEW HERO SKILLS ---

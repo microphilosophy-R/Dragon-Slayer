@@ -3,17 +3,36 @@ import { StartScreen } from './screens/StartScreen';
 import { CastleScreen } from './screens/CastleScreen';
 import { BattleScreen } from './screens/BattleScreen';
 import { Player } from './systems/Player';
-// Fix cursor import
+import { SaveManager } from './systems/SaveManager';
+import { useEffect } from 'react';
 import mouseIcon from './images/cursor.png';
 
 export default function App() {
     const [scenario, setScenario] = useState(0);
     const [gameState, setGameState] = useState(null);
 
+    useEffect(() => {
+        if (gameState && scenario !== 0) {
+            SaveManager.save(gameState);
+        }
+    }, [gameState, scenario]);
+
     const handleNewGame = () => {
+        // Option to warn if overwriting exists? Handled in UI usually, but for now just clear.
+        SaveManager.clearSave();
         const newGameData = Player.createInitialState();
         setGameState(newGameData);
         setScenario(1);
+    };
+
+    const handleLoadGame = () => {
+        const loadedData = SaveManager.load();
+        if (loadedData) {
+            setGameState(loadedData);
+            setScenario(1); // Resume at Castle
+        } else {
+            alert("Failed to load save data.");
+        }
     };
 
     const handleEmbark = () => {
@@ -32,6 +51,7 @@ export default function App() {
         // Use Player system to handle defeat (e.g. cleanup or just return state)
         // For now, Player.processDefeat just returns state, but good to have the hook.
         setGameState(prev => Player.processDefeat(prev));
+        SaveManager.clearSave(); // Reset save on game over
         setScenario(0); // Reset to start
     };
 
@@ -71,7 +91,7 @@ export default function App() {
         `}
             </style>
             <div className="cursor-medieval font-sans antialiased bg-stone-950 min-h-screen selection:bg-amber-900 selection:text-amber-100 text-stone-200">
-                {scenario === 0 && <StartScreen onStartGame={handleNewGame} onLoadGame={() => { }} onLegacy={() => { }} />}
+                {scenario === 0 && <StartScreen onStartGame={handleNewGame} onLoadGame={handleLoadGame} hasSave={SaveManager.hasSave()} onLegacy={() => { }} />}
                 {scenario === 1 && <CastleScreen gameState={gameState} setGameState={setGameState} onEmbark={handleEmbark} />}
                 {scenario === 2 && <BattleScreen gameState={gameState} onWin={handleWinBattle} onLose={handleLoseBattle} />}
             </div>

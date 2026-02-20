@@ -3,7 +3,9 @@ import { Button } from '../components/ui/Button';
 import { CHARACTERS } from '../data/characters';
 import { SKILL_CABINET } from '../data/skills';
 import { CharacterCard } from '../components/ui/CharacterCard';
-import { ArrowLeft, Copy, Plus, Trash2, Check, Upload, AlertTriangle, Save, Undo } from 'lucide-react';
+import { ArrowLeft, Copy, Plus, Trash2, Check, Upload, AlertTriangle, Save, Undo, Download } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 const INITIAL_STATE = {
     id: '',
@@ -195,6 +197,65 @@ export const CharacterEditor = ({ onBack }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const handleDownload = async () => {
+        const zip = new JSZip();
+        const imports = ["import { Character } from '../models/Character';"];
+        const bodyLines = ["export const CHARACTERS = {"];
+
+        // Loop over the global CHARACTERS object to serialize it perfectly
+        for (const [id, char] of Object.entries(CHARACTERS)) {
+            let profileLine = '';
+
+            // Handle Profile Imports and File Copying
+            if (char.profile) {
+                if (typeof char.profile === 'string' && char.profile.startsWith('data:image')) {
+                    // New upload in session memory: bundle it
+                    const base64Data = char.profile.split(',')[1];
+                    const mimeType = char.profile.split(';')[0].match(/jpeg|png|gif/)[0] || 'png';
+                    zip.file(`images/portraits/${id}_portrait.${mimeType}`, base64Data, { base64: true });
+                    imports.push(`import ${id}Portrait from '../images/portraits/${id}_portrait.${mimeType}';`);
+                    profileLine = `        profile: ${id}Portrait,`;
+                } else if (typeof char.profile === 'string') {
+                    // Existing image loaded via webpack (/static/media/...)
+                    imports.push(`import ${id}Portrait from '../images/portraits/${id}_portrait.png';`);
+                    profileLine = `        profile: ${id}Portrait,`;
+                }
+            }
+
+            bodyLines.push(`    ${id}: {`);
+            bodyLines.push(`        id: '${char.id}',`);
+            bodyLines.push(`        name: '${(char.name || '').replace(/'/g, "\\'")}',`);
+            if (char.role) bodyLines.push(`        role: '${char.role}',`);
+            bodyLines.push(`        hp: ${char.hp || 1},`);
+            bodyLines.push(`        maxHp: ${char.maxHp || 1},`);
+            bodyLines.push(`        speed: ${char.speed || 1},`);
+            if (char.skills) bodyLines.push(`        skills: [${char.skills.map(s => `'${s}'`).join(', ')}],`);
+            if (char.description) bodyLines.push(`        description: '${char.description.replace(/'/g, "\\'")}',`);
+            if (profileLine) bodyLines.push(profileLine);
+            if (char.score !== undefined) bodyLines.push(`        score: ${char.score},`);
+            if (char.evaluationTime) bodyLines.push(`        evaluationTime: '${char.evaluationTime}'`);
+            bodyLines.push(`    },`);
+        }
+
+        bodyLines.push("};");
+        bodyLines.push("");
+        bodyLines.push("export const getCharacter = (id) => {");
+        bodyLines.push("    const data = CHARACTERS[id];");
+        bodyLines.push("    if (!data) {");
+        bodyLines.push("        console.warn(`Character data for ${id} not found.`);");
+        bodyLines.push("        return null;");
+        bodyLines.push("    }");
+        bodyLines.push("    return new Character(data);");
+        bodyLines.push("};");
+
+        const finalFileString = `${imports.join('\n')}\n\n${bodyLines.join('\n')}\n`;
+        zip.file('characters.js', finalFileString);
+
+        // Generate the zip and trigger download
+        const blob = await zip.generateAsync({ type: 'blob' });
+        saveAs(blob, `dragon_slayer_characters_export.zip`);
+    };
+
     return (
         <div className="min-h-screen bg-stone-950 text-stone-200 p-8 flex flex-col font-serif">
             <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
@@ -220,9 +281,16 @@ export const CharacterEditor = ({ onBack }) => {
                             onClick={handleSave}
                             icon={Save}
                             disabled={!isDirty}
-                            className={!isDirty ? 'opacity-30 cursor-not-allowed' : 'bg-green-900/40 text-green-400 border-green-700 hover:bg-green-900/60'}
+                            className={!isDirty ? 'opacity-30 cursor-not-allowed' : 'bg-green-900/40 text-green-400 border-green-700 hover:bg-green-900/60 transition-colors'}
                         >
                             SAVE
+                        </Button>
+                        <Button
+                            onClick={handleDownload}
+                            icon={Download}
+                            className="bg-blue-900/40 text-blue-400 border-blue-700 hover:bg-blue-900/60"
+                        >
+                            DOWNLOAD
                         </Button>
                     </div>
                 </div>

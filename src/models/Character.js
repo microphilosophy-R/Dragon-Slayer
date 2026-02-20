@@ -1,5 +1,5 @@
 import { SKILL_CABINET } from '../data/skills';
-import defaultProfile from '../images/hero_portrait.png';
+import defaultProfile from '../images/portraits/hero_portrait.png';
 
 export class Character {
     constructor(data) {

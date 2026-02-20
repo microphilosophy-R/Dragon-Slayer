@@ -1,7 +1,7 @@
 import { Character } from '../models/Character';
-import merlinPortrait from '../images/merlin_portrait.png';
-import arthurPortrait from '../images/arthur_portrait.png';
-import heroPortrait from '../images/hero_portrait.png';
+import merlinPortrait from '../images/portraits/merlin_portrait.png';
+import arthurPortrait from '../images/portraits/arthur_portrait.png';
+import heroPortrait from '../images/portraits/hero_portrait.png';
 
 export const CHARACTERS = {
     // --- HEROES ---

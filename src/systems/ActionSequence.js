@@ -18,6 +18,15 @@ export class ActionSequence {
         // 1. Identify Active Logic
         const activeFaction = allFactions.find(f => f.id === activeFactionId);
 
+        // Clear turn counts from memory for a fresh turn
+        if (extraContext.memory) {
+            Object.keys(extraContext.memory).forEach(key => {
+                if (key.endsWith('_turn_count')) {
+                    delete extraContext.memory[key];
+                }
+            });
+        }
+
         // 2. Gather All Living Actors
         let allActors = [];
         allFactions.forEach(f => {

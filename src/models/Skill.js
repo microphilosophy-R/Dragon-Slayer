@@ -15,6 +15,7 @@ export class Skill {
         this.maxTargets = data.maxTargets || 1; // Default to single target
         this.trigger = data.trigger || 'ACTION_PHASE'; // Default to active skill behavior
         this.limitPerTurn = data.limitPerTurn !== undefined ? data.limitPerTurn : 1; // Default 1 for safety
+        this.once = data.once || false; // Default false
         this.ev = data.ev || 0; // Mathematical Expected Value
         this.evaluationTime = data.evaluationTime || null; // Date of last EV review
 
@@ -80,7 +81,16 @@ export class Skill {
             await AnimationSkill.play(this.animation, user, selectedTargets, context);
         }
 
-        return await this.execute(user, context, selectedTargets);
+        const executionResult = await this.execute(user, context, selectedTargets);
+
+        if (executionResult && context.memory && executionResult.log !== `${this.name} fizzled.`) {
+            if (this.once) {
+                context.memory[`${this.id}_used`] = true;
+            }
+            context.memory[`${this.id}_turn_count`] = (context.memory[`${this.id}_turn_count`] || 0) + 1;
+        }
+
+        return executionResult;
     }
 
     /**
@@ -91,6 +101,16 @@ export class Skill {
      * @returns {Object} { validTargets, isActive, maxTargets }
      */
     determinator(user, context) {
+        const { memory } = context;
+        if (memory) {
+            if (this.once && memory[`${this.id}_used`]) {
+                return { validTargets: [], isActive: false, maxTargets: 0 };
+            }
+            if (memory[`${this.id}_turn_count`] >= this.limitPerTurn) {
+                return { validTargets: [], isActive: false, maxTargets: 0 };
+            }
+        }
+
         // 1. Check Pre-conditions
         if (!this.checkConditionsStrat(context)) {
             return { validTargets: [], isActive: false, maxTargets: 0 };
@@ -289,13 +309,6 @@ export class Skill {
                 if (occurrences === 0) return false;
             }
 
-            // Logic: Custom Requirement (e.g., 'once')
-            if (logic.once && memory && memory[`${id}_used`]) return false;
-
-            // Logic: Limit Per Turn
-            if (memory && memory[`${id}_turn_count`] >= (limitPerTurn !== undefined ? limitPerTurn : 1)) return false;
-
-
             // Logic: Rank/First Check
             if (logic.onlyFirst && !context.isFirst) return false;
 
@@ -363,14 +376,6 @@ export class Skill {
                 return { log: `${name}: ${logParts.join(' ')}`, action: 'REROLL' };
             }
 
-            // Side Effects
-            if (logic.once) {
-                memory[`${id}_used`] = true;
-            }
-
-            // Increment turn count
-            memory[`${id}_turn_count`] = (memory[`${id}_turn_count`] || 0) + 1;
-
             // Speed debuff special case (Archer)
             if (execution.meta && execution.meta.speedDebuffIfFirst && context.isFirst) {
                 await Skill.ModifyStat([context.user], 'speed', -1);
@@ -388,6 +393,7 @@ export class Skill {
             description,
             trigger,
             limitPerTurn,
+            once: logic.once || false,
             targetingMode: targeting.mode || 'AUTO',
             maxTargets,
             checkConditions,

@@ -12,6 +12,7 @@ description: A Boss Portrait Workflow
 
 1. **Strict Aspect Ratio:** Include this in the prompt: All visual prompts must include the phrase: "Vertical portrait, 3:4 aspect ratio (w-48 h-64), centered framing."
 2. **Portrait Style:** Include this in the prompt: An epic dark fantasy oil painting focusing on a massive, terrifying boss creature. Rendered in the style of 19th-century Mythological Realism meets Dark Souls aesthetics. Intense chiaroscuro lighting with brilliant, violent highlights (e.g., hellfire, void energy, glacial frost) and deep, abyssal shadows. The creature's anatomy (scales, horns, void-flesh, spiked armor) must be rendered with extreme, terrifying detail. The background and surroundings should provide thematic context of destruction or a lair (e.g., swirling embers in a ruined keep, massive cracking glaciers, cosmic void storms). The creature's expression must project absolute malice or ancient indifference. Rich, heavy impasto brushwork for environmental effects and smooth, blended sfumato for the creature's core forms. 8k resolution, visible canvas grain. Fullfill the canvas, do not leave blank spacing or add frames.
+3. **Standard File Naming:** All generated images should be named following the pattern: `${id}_portrait.png` (where ${id} is the character's unique ID from the database). Include this filename in the final response.
 
 ## Workflow Execution Steps
 
@@ -33,4 +34,4 @@ description: A Boss Portrait Workflow
 
 - **Construct Prompt:** Construct a highly detailed visual prompt. **Crucially, incorporate the boss's elemental nature, massive scale, and specific weaponry/anatomy into the description.** Design a thematic **surrounding/lair background** that matches their role (e.g., a frozen wasteland, a burning kingdom, the abyss).
 - **Apply Constraints:** Explicitly incorporate the **Strict Aspect Ratio** and **Portrait Style** text into the final visual prompt.
-- **Output:** Output ONLY the final visual prompt text clearly to the user. Do ALL of this in a plain text response. Do NOT attempt to use any image generation tool, save any files, or modify `characters.js`. Wait for the user to manually generate the image.
+- **Output:** Output the final visual prompt text AND the standard filename (e.g., `frost_dragon_portrait.png`) clearly to the user. Do ALL of this in a plain text response. Do NOT attempt to use any image generation tool, save any files, or modify `characters.js`. Wait for the user to manually generate the image.

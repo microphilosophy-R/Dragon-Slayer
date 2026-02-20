@@ -13,6 +13,7 @@ export class Character {
         this.defense = data.defense || 0;
         this.score = data.score || 0; // Calculated Power Score
         this.evaluationTime = data.evaluationTime || null; // Date of last balance evaluation
+        this.isBoss = data.isBoss || false;
         this.faction = null; // Reference to Faction object
 
         // Skills (Array of IDs or Objects)ted: Faction -> Characters -> Skills
@@ -25,6 +26,8 @@ export class Character {
 
         // Display info
         this.description = data.description || '';
+
+        // Profile can be an imported image, a static URL, or a base64 string
         this.profile = data.profile || defaultProfile;
 
         // Equipment

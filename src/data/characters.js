@@ -1,6 +1,9 @@
 import { Character } from '../models/Character';
 import merlinPortrait from '../images/portraits/merlin_portrait.png';
 import arthurPortrait from '../images/portraits/arthur_portrait.png';
+import archerPortrait from '../images/portraits/archer_portrait.png';
+import architectPortrait from '../images/portraits/architect_portrait.png';
+import valeriusPortrait from '../images/portraits/valerius_portrait.png';
 import heroPortrait from '../images/portraits/hero_portrait.png';
 
 export const CHARACTERS = {
@@ -40,7 +43,7 @@ export const CHARACTERS = {
         speed: 8,
         skills: ['archer_offensive', 'archer_defensive'], // Fixed ID from 'archer_trap' to standard naming if exists, or alias
         description: 'A master marksman.',
-        profile: heroPortrait,
+        profile: archerPortrait,
         score: 3.17,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -53,6 +56,7 @@ export const CHARACTERS = {
         speed: 1,
         skills: ['architect_offensive', 'architect_defensive'], // Fixed IDs
         description: 'Builds and destroys fortifications.',
+        profile: architectPortrait,
         score: 3.11,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -67,6 +71,7 @@ export const CHARACTERS = {
         speed: 1,
         skills: ['std_heavy_strike', 'std_shield_bash'],
         description: 'A deeply armored shock trooper.',
+        profile: valeriusPortrait,
         score: 3.11,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -79,6 +84,7 @@ export const CHARACTERS = {
         speed: 7,
         skills: ['std_quick_jab', 'std_wide_sweep'],
         description: 'A swift blade in the shadows.',
+        profile: heroPortrait,
         score: 2.94,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -91,6 +97,7 @@ export const CHARACTERS = {
         speed: 2,
         skills: ['std_group_heal', 'std_inner_focus'],
         description: 'Heals wounds and braces for impact.',
+        profile: heroPortrait,
         score: 1.83,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -103,6 +110,7 @@ export const CHARACTERS = {
         speed: 5,
         skills: ['std_heavy_strike', 'std_berserk'],
         description: 'A warrior who trades defense for power.',
+        profile: heroPortrait,
         score: 5.0,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -117,6 +125,7 @@ export const CHARACTERS = {
         speed: 9,
         skills: ['elara_offensive', 'elara_passive'],
         description: 'A nightblade who dances with shadows.',
+        profile: heroPortrait,
         score: 2.54,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -129,6 +138,7 @@ export const CHARACTERS = {
         speed: 1,
         skills: ['thorn_defensive', 'thorn_passive'],
         description: 'A dwarven defender with spiked armor.',
+        profile: heroPortrait,
         score: 3.11,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -141,6 +151,7 @@ export const CHARACTERS = {
         speed: 4,
         skills: ['siegfried_offensive', 'siegfried_passive'],
         description: 'The tragic hero who bathed in dragon blood. Wields the cursed Balmung.',
+        profile: heroPortrait,
         score: 6.66,
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
@@ -152,7 +163,8 @@ export const CHARACTERS = {
         hp: 16,
         maxHp: 16,
         speed: 8,
-        skills: ['rebel_offensive', 'rebel_defensive']
+        skills: ['rebel_offensive', 'rebel_defensive'],
+        profile: heroPortrait
     },
     dragon: {
         id: 'dragon',
@@ -160,7 +172,9 @@ export const CHARACTERS = {
         hp: 28,
         maxHp: 28,
         speed: 5,
-        skills: ['dragon_offensive', 'dragon_defensive']
+        skills: ['dragon_offensive', 'dragon_defensive'],
+        profile: heroPortrait,
+        isBoss: true
     },
 
     // --- STANDARD ENEMIES ---
@@ -233,6 +247,8 @@ export const CHARACTERS = {
         speed: 4,
         skills: ['frost_offensive', 'frost_defensive'],
         description: 'An ancient dragon whose breath freezes time itself.',
+        profile: heroPortrait, // Or specific if we have it
+        isBoss: true,
         score: 7.85,
         evaluationTime: '2026-02-20T17:21:44+08:00'
     },
@@ -244,6 +260,8 @@ export const CHARACTERS = {
         speed: 9,
         skills: ['void_offensive', 'void_passive'],
         description: 'A nightmare entity that feeds on sheer terror and magic.',
+        profile: heroPortrait,
+        isBoss: true,
         score: 8.12,
         evaluationTime: '2026-02-20T17:21:44+08:00'
     },
@@ -255,6 +273,8 @@ export const CHARACTERS = {
         speed: 6,
         skills: ['demon_offensive', 'demon_passive'],
         description: 'The supreme ruler of the infernal legions.',
+        profile: heroPortrait,
+        isBoss: true,
         score: 9.99,
         evaluationTime: '2026-02-20T17:21:44+08:00'
     }

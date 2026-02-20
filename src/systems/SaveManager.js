@@ -4,7 +4,7 @@ import {
     CounterRing, SniperScope, GamblersCoin, FlameSword
 } from '../data/equipment';
 
-const EQUIP_MAP = {
+export const EQUIP_MAP = {
     sharp_dagger: SharpDagger,
     guardian_shield: GuardianShield,
     vampire_fang: VampireFang,

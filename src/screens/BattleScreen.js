@@ -10,6 +10,7 @@ import { LEVELS } from '../data/levels';
 import { CHARACTERS } from '../data/characters';
 import { Faction } from '../models/Faction';
 import { Character } from '../models/Character';
+import { EQUIP_MAP } from '../systems/SaveManager';
 
 // Import Dice Images
 import dice1 from '../images/dice1.png';
@@ -55,16 +56,32 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         // 1. Build Player Faction
         const heroInstances = gameState.activeTeam.map(id => {
             const charData = gameState.roster.find(c => c.id === id);
-            return new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
+            const inst = new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
+
+            // Re-equip to bind event listeners for the new combat session
+            if (charData.equipment && charData.equipment.length > 0) {
+                charData.equipment.forEach(item => {
+                    const EqClass = EQUIP_MAP[item.id];
+                    if (EqClass) inst.equip(new EqClass());
+                });
+            }
+            return inst;
         });
         // Use 'PLAYER' type to distinguish user control
         const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances, 'amber-600');
 
         // 2. Build Enemy Faction from Level Data
         const currentLevel = LEVELS[gameState.level] || LEVELS[1];
-        const enemyInstances = currentLevel.enemyFactionData.members.map(e =>
-            new Character({ ...e, tempSpeed: e.speed, defense: 0 })
-        );
+        const enemyInstances = currentLevel.enemyFactionData.members.map(e => {
+            const inst = new Character({ ...e, tempSpeed: e.speed, defense: 0 });
+            if (e.equipment && e.equipment.length > 0) {
+                e.equipment.forEach(item => {
+                    const EqClass = EQUIP_MAP[item.id];
+                    if (EqClass) inst.equip(new EqClass());
+                });
+            }
+            return inst;
+        });
         const enemyFaction = new Faction('enemy_faction', 'COMPUTER', currentLevel.enemyFactionData.factionName, enemyInstances, 'red-600');
 
         setFactions([playerFaction, enemyFaction]);

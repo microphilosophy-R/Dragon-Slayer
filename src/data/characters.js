@@ -57,7 +57,7 @@ export const CHARACTERS = {
         evaluationTime: '2026-02-20T11:24:11+08:00'
     },
 
-    // --- STANDARD HEROES (Generated) ---
+    // --- STANDARD HEROES ---
     valerius: {
         id: 'valerius',
         name: 'Sir Valerius',
@@ -163,7 +163,7 @@ export const CHARACTERS = {
         skills: ['dragon_offensive', 'dragon_defensive']
     },
 
-    // --- STANDARD ENEMIES (Generated) ---
+    // --- STANDARD ENEMIES ---
     goblin_skirmisher: {
         id: 'goblin_skirmisher',
         name: 'Goblin Skirmisher',
@@ -203,7 +203,7 @@ export const CHARACTERS = {
         hp: 10,
         maxHp: 10,
         speed: 4,
-        skills: ['rebel_offensive', 'rebel_defensive'] // Reusing basic rebel skills for now
+        skills: ['rebel_offensive', 'rebel_defensive']
     },
 
     // --- NEW ENEMIES ---
@@ -213,12 +213,7 @@ export const CHARACTERS = {
         hp: 8,
         maxHp: 8,
         speed: 8,
-        skills: ['shadow_offensive', 'std_counter'] // Reusing counter or specific? Let's use std_counter for now or passive if we added it? 
-        // Wait, I didn't add shadow_passive to skills.js yet, I just added 'shadow_offensive'. 
-        // Let's check my previous edit.
-        // I added 'shadow_offensive' and 'golem_passive'. Mistake in plan vs execution?
-        // I didn't add 'shadow_passive' in skills.js. I added 'golem_passive'.
-        // Let's use std_counter for Shadow Stalker for now or add it later if needed.
+        skills: ['shadow_offensive', 'std_counter']
     },
     iron_golem: {
         id: 'iron_golem',
@@ -227,6 +222,41 @@ export const CHARACTERS = {
         maxHp: 20,
         speed: 1,
         skills: ['golem_offensive', 'golem_passive']
+    },
+
+    // --- BOSSES ---
+    frost_dragon: {
+        id: 'frost_dragon',
+        name: 'The Glacial Terror',
+        hp: 35,
+        maxHp: 35,
+        speed: 4,
+        skills: ['frost_offensive', 'frost_defensive'],
+        description: 'An ancient dragon whose breath freezes time itself.',
+        score: 7.85,
+        evaluationTime: '2026-02-20T17:21:44+08:00'
+    },
+    void_beast: {
+        id: 'void_beast',
+        name: 'Abyssal Devourer',
+        hp: 25,
+        maxHp: 25,
+        speed: 9,
+        skills: ['void_offensive', 'void_passive'],
+        description: 'A nightmare entity that feeds on sheer terror and magic.',
+        score: 8.12,
+        evaluationTime: '2026-02-20T17:21:44+08:00'
+    },
+    demon_lord: {
+        id: 'demon_lord',
+        name: 'Archfiend Azazel',
+        hp: 40,
+        maxHp: 40,
+        speed: 6,
+        skills: ['demon_offensive', 'demon_passive'],
+        description: 'The supreme ruler of the infernal legions.',
+        score: 9.99,
+        evaluationTime: '2026-02-20T17:21:44+08:00'
     }
 };
 

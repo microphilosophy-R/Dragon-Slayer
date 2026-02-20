@@ -412,7 +412,7 @@ export const SKILL_CABINET = {
         description: "3 DMG. If first to act, +2 DMG.",
         targeting: { scope: 'ENEMIES', max: 1 },
         logic: {},
-        execution: { damage: { amount: 3 } } // Simplified for now, complex conditional damage needs more factory support or manual
+        execution: { damage: { amount: 3 } } // Simplified for now
     }),
 
     // IRON GOLEM
@@ -440,7 +440,96 @@ export const SKILL_CABINET = {
         }
     }),
 
-    // --- PASSIVE SKILLS ---
+    // --- BOSS SKILLS ---
+
+    // FROST DRAGON
+    "frost_offensive": Skill.generate({
+        id: "frost_offensive",
+        name: "Glacial Breath",
+        type: "OFFENSIVE",
+        description: "Deal 4 DMG to ALL enemies. If Dice is Even, targets lose 2 Speed.",
+        targeting: { scope: 'ENEMIES', max: 99 },
+        logic: {}, // We implement the conditional debuff via execution meta if possible, or manual. Let's do manual for complex effects.
+    }),
+    "frost_defensive": Skill.generate({
+        id: "frost_defensive",
+        name: "Permafrost Armor",
+        type: "DEFENSIVE",
+        description: "+5 Defense. If Dice is 6, heal 5 HP.",
+        targeting: { scope: 'SELF' },
+        logic: {},
+        execution: { buff: { stat: 'defense', amount: 5 } }
+    }),
+
+    // VOID BEAST
+    "void_offensive": new Skill({
+        id: "void_offensive",
+        name: "Abyssal Consumption",
+        type: "OFFENSIVE",
+        description: "Deal 6 DMG. Heal Self for half damage dealt.",
+        targeting: { scope: 'ENEMIES', max: 1 },
+        checkConditions: (context) => true,
+        getTargets: (context) => Skill.ResolveScope('ENEMIES', context),
+        execute: async (targets, context) => {
+            await Skill.ApplyDamage(targets, 6, context);
+            const healAmount = 3;
+            // Simplified Life Steal execution
+            context.user.hp = Math.min(context.user.maxHp, context.user.hp + healAmount);
+            return { log: `Void Beast consumes essence! (6 DMG to ${targets[0].name}, +3 HP)` };
+        }
+    }),
+    "void_passive": new Skill({
+        id: "void_passive",
+        name: "Phase Shift",
+        type: "DEFENSIVE",
+        description: "Completely dodge the first attack each turn.",
+        trigger: "Skill:CausingDamage",
+        limitPerTurn: 1,
+        checkConditions: (context) => context.targets?.some(t => t.id === context.user.id),
+        getTargets: (context) => [context.user],
+        execute: (targets, context) => {
+            context.amount = 0;
+            return { log: "Void Beast shifts out of reality! (Dodged)" };
+        }
+    }),
+
+    // DEMON LORD
+    "demon_offensive": new Skill({
+        id: "demon_offensive",
+        name: "Hellfire Barrage",
+        type: "OFFENSIVE",
+        description: "Deal 3 DMG to 3 Random Targets. If Dice >= 4, burn them (apply -1 Defense).",
+        maxTargets: () => 3,
+        checkConditions: (context) => true,
+        getTargets: (context) => {
+            const enemies = Skill.ResolveScope('ENEMIES', context);
+            return enemies.sort(() => 0.5 - Math.random()).slice(0, 3); // Random 3
+        },
+        execute: async (targets, context) => {
+            await Skill.ApplyDamage(targets, 3, context);
+            let log = `Demon Lord unleashes Hellfire on ${targets.length} targets! (3 DMG each).`;
+            if (context.dice >= 4) {
+                targets.forEach(t => t.defense = Math.max(0, t.defense - 1));
+                log += " Armor melted (-1 DEF)!";
+            }
+            return { log };
+        }
+    }),
+    "demon_passive": new Skill({
+        id: "demon_passive",
+        name: "Aura of Despair",
+        type: "DEFENSIVE",
+        description: "When an enemy attacks, they take 2 DMG before landing the blow.",
+        trigger: "Skill:TakeDamage", // Technically triggers on them trying to attack us, but TakeDamage works as a counter
+        limitPerTurn: 99,
+        checkConditions: (context) => context.target?.id === context.user.id && context.source,
+        getTargets: (context) => [context.source],
+        execute: async (targets, context) => {
+            await Skill.ApplyDamage(targets, 2, context, { source: context.user });
+            return { log: `${targets[0].name} burns from the Aura of Despair (2 DMG)!` };
+        }
+    }),
+
     // --- PASSIVE SKILLS ---
     "std_counter": new Skill({
         id: "std_counter",

@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { Skull, Sword, Save, Crown } from 'lucide-react';
+import { Skull, Sword, Save, Crown, Edit3 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
-export const StartScreen = ({ onStartGame, onLoadGame, hasSave, onLegacy }) => {
+export const StartScreen = ({ onStartGame, onLoadGame, hasSave, onLegacy, onEditor }) => {
     return (
         <div className="relative h-screen w-full bg-stone-950 overflow-hidden flex flex-col items-center justify-center p-4">
             <div className="absolute inset-0 opacity-10 pointer-events-none"
@@ -30,6 +29,7 @@ export const StartScreen = ({ onStartGame, onLoadGame, hasSave, onLegacy }) => {
                     <Button onClick={onStartGame} primary icon={Sword}>NEW EXPEDITION</Button>
                     <Button onClick={onLoadGame} disabled={!hasSave} icon={Save}>RESUME CHRONICLE</Button>
                     <Button onClick={onLegacy} disabled icon={Crown}>ANCESTRAL LEGACY</Button>
+                    <Button onClick={onEditor} icon={Edit3}>CHARACTER EDITOR</Button>
                 </div>
                 <div className="pt-12 text-stone-600 text-xs font-serif italic animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                     <p>"The castle gates stand open, yet few return..."</p>

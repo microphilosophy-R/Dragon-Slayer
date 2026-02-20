@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/Dragon-Slayer/static/css/main.7611e90c.css",
-    "main.js": "/Dragon-Slayer/static/js/main.257878a5.js",
+    "main.css": "/Dragon-Slayer/static/css/main.86d803b3.css",
+    "main.js": "/Dragon-Slayer/static/js/main.089b5329.js",
     "static/js/336.2b6afe24.chunk.js": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js",
     "static/media/hero_portrait.png": "/Dragon-Slayer/static/media/hero_portrait.139aabc75d538f0e31ad.png",
     "static/media/cursor.png": "/Dragon-Slayer/static/media/cursor.e48e5722ebe67aaa55c6.png",
@@ -14,12 +14,12 @@
     "static/media/arthur_portrait.png": "/Dragon-Slayer/static/media/arthur_portrait.2d3bcb57f027a92ea987.png",
     "static/media/merlin_portrait.png": "/Dragon-Slayer/static/media/merlin_portrait.89386b948013596fcf11.png",
     "index.html": "/Dragon-Slayer/index.html",
-    "main.7611e90c.css.map": "/Dragon-Slayer/static/css/main.7611e90c.css.map",
-    "main.257878a5.js.map": "/Dragon-Slayer/static/js/main.257878a5.js.map",
+    "main.86d803b3.css.map": "/Dragon-Slayer/static/css/main.86d803b3.css.map",
+    "main.089b5329.js.map": "/Dragon-Slayer/static/js/main.089b5329.js.map",
     "336.2b6afe24.chunk.js.map": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.7611e90c.css",
-    "static/js/main.257878a5.js"
+    "static/css/main.86d803b3.css",
+    "static/js/main.089b5329.js"
   ]
 }

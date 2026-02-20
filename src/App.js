@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StartScreen } from './screens/StartScreen';
 import { CastleScreen } from './screens/CastleScreen';
 import { BattleScreen } from './screens/BattleScreen';
+import { CharacterEditor } from './screens/CharacterEditor';
 import { Player } from './systems/Player';
 import { SaveManager } from './systems/SaveManager';
 import { useEffect } from 'react';
@@ -55,6 +56,10 @@ export default function App() {
         setScenario(0); // Reset to start
     };
 
+    const handleEditor = () => {
+        setScenario(3);
+    };
+
     return (
         <>
             <style>
@@ -91,9 +96,10 @@ export default function App() {
         `}
             </style>
             <div className="cursor-medieval font-sans antialiased bg-stone-950 min-h-screen selection:bg-amber-900 selection:text-amber-100 text-stone-200">
-                {scenario === 0 && <StartScreen onStartGame={handleNewGame} onLoadGame={handleLoadGame} hasSave={SaveManager.hasSave()} onLegacy={() => { }} />}
+                {scenario === 0 && <StartScreen onStartGame={handleNewGame} onLoadGame={handleLoadGame} hasSave={SaveManager.hasSave()} onLegacy={() => { }} onEditor={handleEditor} />}
                 {scenario === 1 && <CastleScreen gameState={gameState} setGameState={setGameState} onEmbark={handleEmbark} />}
                 {scenario === 2 && <BattleScreen gameState={gameState} onWin={handleWinBattle} onLose={handleLoseBattle} />}
+                {scenario === 3 && <CharacterEditor onBack={() => setScenario(0)} />}
             </div>
         </>
     );

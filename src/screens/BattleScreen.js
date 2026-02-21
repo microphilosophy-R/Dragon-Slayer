@@ -11,6 +11,7 @@ import { CHARACTERS } from '../data/characters';
 import { Faction } from '../models/Faction';
 import { Character } from '../models/Character';
 import { EQUIP_MAP } from '../systems/SaveManager';
+import { FACTIONS } from '../data/factions';
 
 // Import Dice Images
 import dice1 from '../images/dice1.png';
@@ -53,10 +54,22 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
     // --- INITIALIZATION ---
     // --- INITIALIZATION ---
     useEffect(() => {
-        // 1. Build Player Faction
+        // 1. Build Player Faction & Logistics Check
+        const teamSize = gameState.activeTeam ? gameState.activeTeam.length : 3;
+        const supplyNeeded = (teamSize + 1) * gameState.level * 2;
+        const isStarving = gameState.economy?.current_supplies < supplyNeeded;
+
         const heroInstances = gameState.activeTeam.map(id => {
             const charData = gameState.roster.find(c => c.id === id);
             const inst = new Character({ ...charData, tempSpeed: charData.speed, defense: 0 });
+
+            // Apply Starvation
+            if (isStarving) {
+                inst.maxHp = Math.max(1, Math.floor(inst.maxHp * 0.75));
+                inst.hp = Math.min(inst.hp, inst.maxHp);
+                inst.speed = Math.max(1, inst.speed - 1);
+                inst.tempSpeed = inst.speed;
+            }
 
             // Re-equip to bind event listeners for the new combat session
             if (charData.equipment && charData.equipment.length > 0) {
@@ -70,9 +83,18 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
         // Use 'PLAYER' type to distinguish user control
         const playerFaction = new Faction('player_faction', 'PLAYER', 'Expedition Team', heroInstances, 'amber-600');
 
-        // 2. Build Enemy Faction from Level Data
-        const currentLevel = LEVELS[gameState.level] || LEVELS[1];
-        const enemyInstances = currentLevel.enemyFactionData.members.map(e => {
+        // 2. Build Enemy Faction from Level Data (or Rebel override)
+        let enemyFactionData = LEVELS[gameState.level]?.enemyFactionData || LEVELS[1].enemyFactionData;
+
+        // Under 40 happiness triggers a rebellion
+        if (gameState.economy && gameState.economy.happiness < 40) {
+            enemyFactionData = {
+                factionName: "Starving Uprising",
+                members: FACTIONS.ENEMIES.REBELS_OUTSKIRTS.members
+            };
+        }
+
+        const enemyInstances = enemyFactionData.members.map(e => {
             const inst = new Character({ ...e, tempSpeed: e.speed, defense: 0 });
             if (e.equipment && e.equipment.length > 0) {
                 e.equipment.forEach(item => {
@@ -82,11 +104,12 @@ export const BattleScreen = ({ gameState, onWin, onLose }) => {
             }
             return inst;
         });
-        const enemyFaction = new Faction('enemy_faction', 'COMPUTER', currentLevel.enemyFactionData.factionName, enemyInstances, 'red-600');
+        const enemyFaction = new Faction('enemy_faction', 'COMPUTER', enemyFactionData.factionName, enemyInstances, 'red-600');
 
         setFactions([playerFaction, enemyFaction]);
         setTurnPhase('PLAYER_WAIT_ROLL');
-        addLog(`Encountered: ${enemyFaction.name} `);
+        addLog(`Encountered: ${enemyFaction.name}`);
+        if (isStarving) addLog(`WARNING: Logistics failed! Party is Starving!`);
     }, []);
 
     // Scroll Log

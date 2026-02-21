@@ -20,6 +20,9 @@ export const CastleScreen = ({ gameState, setGameState, onEmbark }) => {
     // Track which area is being hovered
     const [hoveredArea, setHoveredArea] = useState('');
 
+    const hasHallEvent = gameState?.lastEventLevel !== gameState?.level;
+    const isEverythingDone = !hasHallEvent;
+
     if (view === 'gate') return <ExpeditionOffice gameState={gameState} setGameState={setGameState} onEmbark={onEmbark} onBack={() => setView('hub')} />;
 
     // Original image dimensions from the map coordinates (max X ~2749, Y ~1527. exact dimension 2752x1536).
@@ -63,12 +66,41 @@ export const CastleScreen = ({ gameState, setGameState, onEmbark }) => {
                                         fill: transparent;
                                         stroke: transparent;
                                         cursor: pointer;
-                                        transition: all 0.2s;
+                                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                                     }
                                     .hotspot:hover {
                                         stroke: rgba(245, 158, 11, 0.8);
+                                        stroke-width: 8px;
+                                        fill: rgba(245, 158, 11, 0.2);
+                                    }
+                                    .hotspot-available {
+                                        stroke: rgba(245, 158, 11, 0.4);
+                                        stroke-width: 4px;
+                                        animation: border-glow 2.5s infinite ease-in-out;
+                                    }
+                                    .hotspot-gate-highlight {
+                                        stroke: rgba(251, 191, 36, 0.6);
                                         stroke-width: 6px;
-                                        fill: rgba(245, 158, 11, 0.15);
+                                        animation: gate-glow 2s infinite ease-in-out;
+                                    }
+                                    @keyframes border-glow {
+                                        0% { stroke-opacity: 0.3; stroke-width: 3px; }
+                                        50% { stroke-opacity: 0.8; stroke-width: 6px; }
+                                        100% { stroke-opacity: 0.3; stroke-width: 3px; }
+                                    }
+                                    @keyframes gate-glow {
+                                        0% { stroke-opacity: 0.4; stroke-width: 4px; fill: rgba(251, 191, 36, 0.05); }
+                                        50% { stroke-opacity: 0.9; stroke-width: 10px; fill: rgba(251, 191, 36, 0.15); }
+                                        100% { stroke-opacity: 0.4; stroke-width: 4px; fill: rgba(251, 191, 36, 0.05); }
+                                    }
+                                    .hint-marker {
+                                        fill: #fbbf24;
+                                        animation: ripple 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+                                    }
+                                    @keyframes ripple {
+                                        0% { transform: scale(0.8); opacity: 0.8; }
+                                        50% { transform: scale(1.4); opacity: 0.4; }
+                                        100% { transform: scale(0.8); opacity: 0.8; }
                                     }
                                 `}
                             </style>
@@ -92,14 +124,19 @@ export const CastleScreen = ({ gameState, setGameState, onEmbark }) => {
                             onMouseLeave={() => setHoveredArea('')}
                         />
 
-                        {/* Great Hall */}
-                        <polygon
-                            className="hotspot"
-                            points="1537,727 1571,652 1644,696 1811,613 1883,693 1905,909 1591,1068 1444,1002 1452,747 1481,805"
-                            onClick={() => setActivePopup('hall')}
-                            onMouseEnter={() => setHoveredArea('Great Hall')}
-                            onMouseLeave={() => setHoveredArea('')}
-                        />
+                        {/* Great Hall (Availability hint added) */}
+                        <g>
+                            <polygon
+                                className={`hotspot ${hasHallEvent ? 'hotspot-available' : ''}`}
+                                points="1537,727 1571,652 1644,696 1811,613 1883,693 1905,909 1591,1068 1444,1002 1452,747 1481,805"
+                                onClick={() => setActivePopup('hall')}
+                                onMouseEnter={() => setHoveredArea('Great Hall')}
+                                onMouseLeave={() => setHoveredArea('')}
+                            />
+                            {hasHallEvent && (
+                                <circle cx="1670" cy="850" r="15" className="hint-marker pointer-events-none" />
+                            )}
+                        </g>
 
                         {/* Barracks */}
                         <polygon
@@ -128,9 +165,9 @@ export const CastleScreen = ({ gameState, setGameState, onEmbark }) => {
                             onMouseLeave={() => setHoveredArea('')}
                         />
 
-                        {/* Gatehouse / The Gate */}
+                        {/* Gatehouse / The Gate (Highlighted if everything is done) */}
                         <polygon
-                            className="hotspot"
+                            className={`hotspot ${isEverythingDone ? 'hotspot-gate-highlight' : ''}`}
                             points="1799,980 1730,1021 1737,1145 1798,1167 1817,1351 1873,1383 1951,1354 1958,1295 1997,1274 2055,1295 2124,1257 2121,979 2073,892 2048,921 1980,890 1922,931 1953,955 1889,987 1862,980 1845,1009"
                             onClick={() => setView('gate')}
                             onMouseEnter={() => setHoveredArea('The Gate')}
@@ -142,11 +179,11 @@ export const CastleScreen = ({ gameState, setGameState, onEmbark }) => {
             </div>
 
             {/* Popups Layer (Modals) */}
-            {activePopup === 'keep' && <CastleKeep onClose={() => setActivePopup(null)} />}
-            {activePopup === 'temple' && <CastleTemple onClose={() => setActivePopup(null)} />}
-            {activePopup === 'barracks' && <CastleBarracks onClose={() => setActivePopup(null)} />}
-            {activePopup === 'stables' && <CastleStables onClose={() => setActivePopup(null)} />}
-            {activePopup === 'workshops' && <CastleWorkshops onClose={() => setActivePopup(null)} />}
+            {activePopup === 'keep' && <CastleKeep onClose={() => setActivePopup(null)} gameState={gameState} setGameState={setGameState} />}
+            {activePopup === 'temple' && <CastleTemple onClose={() => setActivePopup(null)} gameState={gameState} setGameState={setGameState} />}
+            {activePopup === 'barracks' && <CastleBarracks onClose={() => setActivePopup(null)} gameState={gameState} setGameState={setGameState} />}
+            {activePopup === 'stables' && <CastleStables onClose={() => setActivePopup(null)} gameState={gameState} setGameState={setGameState} />}
+            {activePopup === 'workshops' && <CastleWorkshops onClose={() => setActivePopup(null)} gameState={gameState} setGameState={setGameState} />}
             {activePopup === 'hall' && (
                 <CastlePopup title="The Great Hall" onClose={() => setActivePopup(null)}>
                     {/* The MainHall.js naturally handles events. We just wrap it in a modal. */}

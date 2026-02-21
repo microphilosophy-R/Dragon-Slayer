@@ -2,6 +2,7 @@
 import { CHARACTERS, getCharacter } from '../data/characters';
 import { FACTIONS } from '../data/factions';
 import { SharpDagger, GuardianShield, VampireFang } from '../data/equipment';
+import { Economy } from '../models/Economy';
 
 export class Player {
     /**
@@ -31,7 +32,8 @@ export class Player {
             castleFacilities: {
                 mainHall: { level: 1 },
                 expeditionOffice: { level: 1 }
-            }
+            },
+            economy: new Economy()
         };
     }
 
@@ -41,10 +43,12 @@ export class Player {
      * @returns {Object} Updated state
      */
     static processVictory(currentState) {
+        const updatedEconomy = Economy.processVictory(currentState.economy);
         return {
             ...currentState,
             level: currentState.level + 1,
-            gold: currentState.gold + 50
+            gold: currentState.gold + 50,
+            economy: updatedEconomy
         };
     }
 

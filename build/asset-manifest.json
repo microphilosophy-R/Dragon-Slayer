@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/Dragon-Slayer/static/css/main.d5f30e3d.css",
-    "main.js": "/Dragon-Slayer/static/js/main.d8cff927.js",
+    "main.css": "/Dragon-Slayer/static/css/main.7460bff1.css",
+    "main.js": "/Dragon-Slayer/static/js/main.4a28de0a.js",
     "static/js/336.2b6afe24.chunk.js": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js",
     "static/media/architect_portrait.png": "/Dragon-Slayer/static/media/architect_portrait.2d4dab176534fcc5f2b7.png",
     "static/media/valerius_portrait.png": "/Dragon-Slayer/static/media/valerius_portrait.75bee87f989e19d59956.png",
-    "static/media/The castle.png": "/Dragon-Slayer/static/media/The castle.276d11b1c329820bfa76.png",
+    "static/media/The castle.png": "/Dragon-Slayer/static/media/The castle.97ef532765c8e72355de.png",
     "static/media/hero_portrait.png": "/Dragon-Slayer/static/media/hero_portrait.139aabc75d538f0e31ad.png",
-    "static/media/archer_portrait.png": "/Dragon-Slayer/static/media/archer_portrait.4e3150d6f91aae6dd035.png",
+    "static/media/archer_portrait.png": "/Dragon-Slayer/static/media/archer_portrait.314c1979254b26f0d337.png",
     "static/media/cursor.png": "/Dragon-Slayer/static/media/cursor.e48e5722ebe67aaa55c6.png",
     "static/media/dice4.png": "/Dragon-Slayer/static/media/dice4.996cc19cc5aaeab6d4e2.png",
     "static/media/dice1.png": "/Dragon-Slayer/static/media/dice1.cd9b4e8af38626c6a1a3.png",
@@ -18,12 +18,12 @@
     "static/media/arthur_portrait.png": "/Dragon-Slayer/static/media/arthur_portrait.2d3bcb57f027a92ea987.png",
     "static/media/merlin_portrait.png": "/Dragon-Slayer/static/media/merlin_portrait.89386b948013596fcf11.png",
     "index.html": "/Dragon-Slayer/index.html",
-    "main.d5f30e3d.css.map": "/Dragon-Slayer/static/css/main.d5f30e3d.css.map",
-    "main.d8cff927.js.map": "/Dragon-Slayer/static/js/main.d8cff927.js.map",
+    "main.7460bff1.css.map": "/Dragon-Slayer/static/css/main.7460bff1.css.map",
+    "main.4a28de0a.js.map": "/Dragon-Slayer/static/js/main.4a28de0a.js.map",
     "336.2b6afe24.chunk.js.map": "/Dragon-Slayer/static/js/336.2b6afe24.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.d5f30e3d.css",
-    "static/js/main.d8cff927.js"
+    "static/css/main.7460bff1.css",
+    "static/js/main.4a28de0a.js"
   ]
 }

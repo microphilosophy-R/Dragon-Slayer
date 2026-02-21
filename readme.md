@@ -1,50 +1,52 @@
 # Dragon Slayer - Project Overview
 
-Welcome to **Dragon Slayer**, a turn-based tactical RPG featuring meaningful skill interactions and a robust event-driven architecture.
+Welcome to **Dragon Slayer**, a high-fidelity turn-based tactical RPG featuring deep character customization, a castle-building meta-layer, and a robust event-driven combat architecture.
 
-## Current State: Event & Skill Systems
-We have successfully implemented the core systems that drive gameplay:
-1.  **Event System**: A global `EventBus` now allows characters, skills, and equipment to communicate seamlessly without tight coupling.
-2.  **Skill System**: A refined `Determine -> Target -> Execute` pipeline supports complex abilities, including Rerolls, Revives, and Speed-based mechanics.
-3.  **Battle Workflow**: A faction-based turn system orchestrated by `ActionSequence` and `Combat`.
+## 🏰 Core Pillars
 
-## Term Dictionary
+1.  **Castle Management**: Develop your stronghold, visit the Workshops, Barracks, and Main Hall to manage your army and resources.
+2.  **Expedition Planning**: Organize your heroes in the **Expedition Office** using a layered roster system to prepare for the challenges ahead.
+3.  **Tactical Combat**: A refined `Determine -> Target -> Execute` pipeline supports complex abilities, including Rerolls, Revives, and Speed-based mechanics.
+4.  **Premium Aesthetics**: A consistent "Amber & Gold" design system with custom typography, smooth micro-animations, and hand-crafted UI elements.
 
-### Game Time Units
-*   **Round**: A complete cycle where **every** Faction has finished one **Turn**.
-*   **Turn**: A phase assigned to a specific **Faction**. Crucially, **ALL** characters (Friend and Foe) act during a Turn.
-    *   **Active Faction Members**: Execute **Offensive** actions.
-    *   **Opposing Faction Members**: Execute **Defensive** actions.
-*   **Action Sequence**: The sorted order (by Speed) in which all characters act within a single Turn.
+## 🏛️ Key Screens
 
-### Entities
-*   **Faction**: A group of characters allied together (e.g., 'PLAYER', 'ENEMY'). Factions share a Turn and victory conditions.
-*   **Character**: The primary actor. Has Stats (`HP`, `Speed`, `Defense`), holds **Skills**, and can equip Items.
-*   **Skill**: A discrete ability (Offensive, Defensive, or Passive). Follows a flexible **4-step execution flow**:
-    1.  **Trigger**: Event signal (`ACTION_PHASE`, `Skill:TakeDamage`) that activates the skill.
-    2.  **Determinator**: Checks conditions (Dice, History, Limits) & Validity.
+*   **Castle Map**: The central hub for navigation. Interactive buildings lead to specialized management zones.
+*   **Expedition Office**: Advanced hero roster management featuring "pagemarks" (tabs) and role filters for large rosters.
+*   **Main Hall**: The site for story events and level-based milestones.
+*   **Battle Screen**: The tactical arena where the `EventBus` orchestrates character actions and skill interactions.
+*   **Character Editor**: Tools for refining hero stats, skills, and visual portraits.
+
+## 🛠️ Systems & Architecture
+
+### Combat Logic
+*   **Event System**: A global `EventBus` allows characters, skills, and equipment to communicate seamlessly without tight coupling.
+*   **Action Sequence**: A faction-based turn system where characters act in order of **Speed**. 
+*   **Skill Execution Flow**:
+    1.  **Trigger**: Event signal (`ACTION_PHASE`, `Skill:TakeDamage`).
+    2.  **Determinator**: Checks conditions (Dice, History, Limits).
     3.  **Targeting**: Selects recipients (Auto/Manual).
     4.  **Execution**: Applies effects (Damage, Heal, Buff).
-*   **Passive Skills**: Skills triggered by specific events (not just the turn phase).
-    *   **Loop Prevention**: Limited by `limitPerTurn` (default 1).
-    *   **Resolution Order**: Multiple passives triggered by the same event resolve in order of Character **Speed** (Fastest to Slowest).
-*   **Equipment**: Items attached to a Character. They passively modify stats or actively listen to **Events** to intervene in combat (e.g., "Add +1 Damage on Hit").
 
-### Mechanics
-*   **Event**: A signal broadcast by the `EventBus` (e.g., `Skill:CausingDamage`, `Character:Die`). Listeners (like Equipment) can react to or modify these signals.
-*   **Context**: A snapshot of the battle state (`Dice Value`, `Active Faction`, `History`) passed to every Skill and Event to ensure consistent logic resolution.
+### Management Systems
+*   **Portrait Engine**: A standardized system for resolving character profile images with robust fallback mechanisms.
+*   **Roster Navigation**: Layered UI for managing dozens of heroes without screen clutter.
 
-## Architecture Highlights
-*   **Models**: Located in `src/models/`, these classes (`Character`, `Skill`, `Equipment`) encapsulate data and behavior.
-*   **Systems**: Located in `src/systems/`, these managers (`Combat`, `EventBus`, `ActionSequence`) handle the game flow and rules.
-*   **Data**: Static definitions (`skills.js`, `equipment.js`) drive the content, allowing for easy balancing and expansion.
+## ✨ UI/UX Design Philosophy
+*   **Theme**: Sleek dark mode with **Amber & Gold** highlights.
+*   **Details**: Custom scrollbars, interactive cursors, and glassmorphism effects.
+*   **Interactivity**: Significant focus on hover states and tactile feedback (e.g., zooming card stacks).
 
-## Recent Updates
-*   **Skill Logic Alignment**: Resolved an execution context mismatch in `Skill.ApplyDamage`. 
-    *   **Implication**: Passive skills (like `Counter Attack` or `Reflect`) can now correctly attribute damage to the defending character (or original attacker) instead of incorrectly inheriting the trigger's context source.
-    *   **Method**: `Skill.ApplyDamage` now accepts an `options` object with a `source` override, which takes priority over `context.source` and `context.user`.
+## 📅 Recent Milestone Updates
+*   **Castle Expansion**: Implemented the interactive Castle Map and individual building screens (Workshops, Stables, Keep, etc.).
+*   **Expedition Office V2**: Added the "Pagemark" navigation system and character role filters.
+*   **Portrait Standardization**: Defined a unified path for character assets, ensuring every hero has a visual identity.
+*   **Combat Refinement**: Fixed context mismatches in `Skill.ApplyDamage`, allowing passive counters and equipment to correctly attribute damage.
+*   **UI Polish**: Applied the "Dragon Slayer" signature look across the Battle Log, Character Cards, and Rosters.
 
-## Next Steps
-*   **Enemy AI**: Refine the decision-making for non-player factions.
-*   **Level Progression**: Implement multiple battle types (Normal/Elite/Boss) strung together in a roguelike run.
-*   **UI Polish**: Enhance visual feedback for complex events like "Reroll" or "Revive".
+## 🚀 Next Steps
+*   **Building Functionality**: Implement specific gameplay mechanics for each castle building (e.g., item crafting in Workshops).
+*   **Progression Loop**: Connect the Castle management directly to Battle rewards and level scaling.
+*   **Save/Load Infrastructure**: Implement persistent storage for hero rosters and castle state.
+*   **Enemy AI**: Enhance boss patterns and enemy group synergies.
+
